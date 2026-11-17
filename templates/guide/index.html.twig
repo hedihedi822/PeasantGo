@@ -1,0 +1,152 @@
+{% extends '_layout/app.html.twig' %}
+{% block title %}Guide d'utilisation – PeasantGo.AI{% endblock %}
+{% block styles %}
+    .guide-nav a { color: #343a40; text-decoration: none; display: block; padding: .3rem .6rem; border-radius: 6px; }
+    .guide-nav a:hover { background: var(--soft); color: var(--primary-color); }
+    .guide section { scroll-margin-top: 80px; }
+    .guide h2 { font-size: 1.25rem; color: var(--primary-color); margin-top: .5rem; }
+    .etape { counter-increment: etape; position: relative; padding-left: 2.4rem; margin-bottom: .8rem; }
+    .etape::before { content: counter(etape); position: absolute; left: 0; top: 0; width: 1.7rem; height: 1.7rem; border-radius: 50%; background: var(--primary-color); color: #fff; text-align: center; font-weight: 700; line-height: 1.7rem; }
+    .etapes { counter-reset: etape; }
+    .col-def dt { color: var(--primary-color); }
+{% endblock %}
+{% block navbar %}
+<nav class="navbar navbar-light sticky-top">
+    <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="{{ app.user ? path('app_choix_terrain') : path('app_home_no') }}"><img src="/Images/logo.png" alt="" height="44" class="me-2"><span>PeasantGo.AI</span></a>
+        <a class="btn btn-outline-success btn-sm" href="{{ app.user ? path('app_choix_terrain') : path('app_login') }}"><i class="fas fa-arrow-left me-1"></i>{{ app.user ? 'Mes terrains' : 'Connexion' }}</a>
+    </div>
+</nav>
+{% endblock %}
+{% block body %}
+<div class="row g-4">
+    <aside class="col-lg-3">
+        <div class="card card-body guide-nav position-sticky" style="top: 80px">
+            <strong class="mb-2">Sommaire</strong>
+            <a href="#but">1. À quoi sert PeasantGo.AI</a>
+            <a href="#compte">2. Compte et connexion</a>
+            <a href="#terrains">3. Mes terrains et justificatif</a>
+            <a href="#contour">4. Placer le terrain sur la carte</a>
+            <a href="#tableau">5. Le tableau du robot</a>
+            <a href="#formulaire">6. La fenêtre du terrain</a>
+            <a href="#recolte">7. Déclarer une récolte</a>
+            <a href="#zones">8. Cultures les plus rentables</a>
+            <a href="#satellite">9. Satellites et météo</a>
+            <a href="#notifications">10. Notifications et alertes</a>
+            <a href="#formations">11. Formations</a>
+            <a href="#faq">12. Questions fréquentes</a>
+        </div>
+    </aside>
+    <div class="col-lg-9 guide">
+        <div class="card card-body">
+            <h1 class="h3 section-title"><i class="fas fa-book-open me-2"></i>Guide d'utilisation</h1>
+            <p class="text-muted">Tout ce qu'il faut savoir pour utiliser PeasantGo.AI, page par page.</p>
+
+            <section id="but">
+                <h2>1. À quoi sert PeasantGo.AI</h2>
+                <p>Le but est simple : <strong>vous aider à cultiver ce qui sera rentable</strong>. Avant de semer, le robot estime pour <em>votre</em> terrain les chances de réussite, ce que vous allez produire, ce que cela va coûter et le prix auquel vous pourrez vendre. Il regarde aussi ce que les autres vont produire dans votre zone, pour éviter d'arriver au marché avec un produit que tout le monde a déjà et de devoir vendre à perte.</p>
+            </section>
+
+            <section id="compte">
+                <h2>2. Compte et connexion</h2>
+                <div class="etapes">
+                    <p class="etape"><strong>Créer un compte</strong> : « Créer un compte », choisissez <em>Personne</em> (email + CIN) ou <em>Société</em> (code fiscal, SIRET, code société).</p>
+                    <p class="etape"><strong>Se connecter</strong> : une personne utilise son email, une société son <em>code société</em>. Cochez « Se souvenir de moi » pour rester connecté 2 semaines.</p>
+                    <p class="etape"><strong>Mot de passe oublié</strong> : un code à 6 chiffres est envoyé sur l'email du compte (valable 5 minutes).</p>
+                </div>
+            </section>
+
+            <section id="terrains">
+                <h2>3. Mes terrains et justificatif</h2>
+                <p>Après la connexion, vous arrivez sur <strong>Mes terrains</strong> : la carte satellite à gauche, la liste de vos terrains à droite. Touchez un terrain dans la liste pour le voir sur la carte (et inversement), puis <strong>« Entrer »</strong> : toute l'application concerne alors ce terrain. Son nom s'affiche en haut à droite, à côté de votre nom. Pour changer : menu de votre photo → « Changer de terrain ».</p>
+                <p><strong>Il faut au moins un terrain pour continuer</strong>, et chaque terrain doit être accompagné d'une <strong>preuve</strong> : certificat de propriété, contrat de location, ou autre attestation (PDF ou photo, 8 Mo au plus). Le document n'est visible que par vous et l'équipe.</p>
+                <ul class="small">
+                    <li><span class="badge bg-warning text-dark">En attente</span> ou <span class="badge bg-success">Pré-vérifié par le robot</span> : vous pouvez déjà entrer avec le terrain.</li>
+                    <li><span class="badge bg-success">Vérifié par l'équipe</span> : c'est validé définitivement.</li>
+                    <li><span class="badge bg-danger">Refusé</span> ou <span class="badge bg-danger">À fournir</span> : envoyez un (nouveau) document pour pouvoir entrer avec ce terrain. Le motif du refus est affiché sous le terrain.</li>
+                </ul>
+                <p class="small text-muted">Le robot lit le document (nom ou CIN du titulaire, surface, lieu) et le compare à votre compte. Il signale aussi un document déjà envoyé par un autre compte, ou un contour qui chevauche le terrain d'un autre agriculteur. C'est l'équipe qui décide.</p>
+                <p>La même page donne accès aux <strong>paramètres du compte</strong>, au <strong>profil</strong>, au <strong>contact</strong>, aux <strong>partenaires</strong> et à ce guide.</p>
+            </section>
+
+            <section id="contour">
+                <h2>4. Placer le terrain sur la carte</h2>
+                <p>Deux façons, au choix, dans « Ajouter » :</p>
+                <div class="etapes">
+                    <p class="etape"><strong>Avec l'adresse</strong> : écrivez-la comme vous la diriez (« route de Kélibia km 5, Menzel Temime, Nabeul », même en derja) puis « Trouver ». Le robot place un contour de la surface déclarée ; déplacez ses coins du doigt pour qu'il colle à votre champ.</p>
+                    <p class="etape"><strong>En dessinant</strong> : « Dessiner sur la carte », touchez chaque coin du champ en vue satellite, puis le premier point pour fermer.</p>
+                </div>
+                <p>Plus tard, « Modifier / Ajuster le contour » sous le terrain permet de corriger. Avec un contour exact, le robot reçoit les <strong>images satellites</strong> de votre champ.</p>
+            </section>
+
+            <section id="tableau">
+                <h2>5. Le tableau du robot (page d'accueil)</h2>
+                <p>Le tableau a deux parties : <strong>1. ce que vous avez prévu cette saison</strong> (d'après la fenêtre du terrain), puis <strong>2. ce que le robot vous recommande</strong>. « Voir toutes les cultures et tous les élevages » affiche la liste complète. Pour chaque culture ou élevage, une ligne <strong>pour votre terrain</strong> :</p>
+                <dl class="row col-def small">
+                    <dt class="col-sm-3">N° saison</dt><dd class="col-sm-9">Le rang de la saison (1re, 2e…) parmi les saisons possibles dans l'année.</dd>
+                    <dt class="col-sm-3">Saisons / an</dt><dd class="col-sm-9">Combien de fois on peut cultiver ce produit dans l'année.</dd>
+                    <dt class="col-sm-3">Période cultivation</dt><dd class="col-sm-9">Quand on sème / plante et quand la culture se termine.</dd>
+                    <dt class="col-sm-3">Période exploitation</dt><dd class="col-sm-9">Quand on récolte.</dd>
+                    <dt class="col-sm-3">Taux de réussite</dt><dd class="col-sm-9">Chance que la culture réussisse sur <em>votre</em> terrain, d'après la météo des 8 dernières années sur la période de culture, l'eau disponible (compteur d'eau = irrigation), la vigueur du terrain vue par satellite et les récoltes déclarées dans votre gouvernorat.</dd>
+                    <dt class="col-sm-3">Production estimée</dt><dd class="col-sm-9">Ce que votre terrain devrait produire (tonnes), selon sa surface, la météo et les rendements réellement obtenus par les agriculteurs de la zone.</dd>
+                    <dt class="col-sm-3">Exportation</dt><dd class="col-sm-9">« Oui » si la Tunisie produit plus qu'elle ne consomme pour cette culture (le surplus part à l'export) ; le robot indique les destinations les plus proches qui en manquent.</dd>
+                    <dt class="col-sm-3">Coût</dt><dd class="col-sm-9">Coût total estimé sur votre surface : semences, engrais, traitements, eau, main d'œuvre (SMAG), machines.</dd>
+                    <dt class="col-sm-3">Prix</dt><dd class="col-sm-9">Prix de vente estimé (DT/kg) <em>dans votre localité</em> au moment de la récolte : offre et demande de la zone, coût de transport depuis les zones excédentaires, SMIG, prix des années précédentes.</dd>
+                    <dt class="col-sm-3">Bénéfice</dt><dd class="col-sm-9">Production × prix − coût, pondéré par le taux de réussite. Les 3 meilleures cultures et le meilleur élevage sont marqués <span class="badge bg-success">Recommandé</span>.</dd>
+                </dl>
+                <p><strong>Élevage</strong> : poulet de chair, poules pondeuses, agneaux à l'engraissement, vaches laitières et ruches ont les mêmes colonnes. La saison est la bande ou le cycle d'élevage, la production est en kg, litres, œufs ou kg de miel, calculée pour l'effectif que vous avez prévu (sinon un effectif type). Le robot tient compte des jours de forte chaleur, du froid pour les volailles, de la pluie avant la saison pour le pâturage et les fleurs, et de l'Aïd al-Adha pour le prix des agneaux.</p>
+                <p><strong>Pour éviter que tout le monde plante la même chose</strong> : quand le robot a déjà recommandé une culture à d'autres terrains de votre gouvernorat, il compte une partie de leur future production comme offre à venir. Le prix estimé baisse, et la recommandation peut passer à une autre culture. Les visiteurs voient le même tableau pour leur région, mais la réussite, la production, le prix et le bénéfice sont réservés aux membres.</p>
+                <p class="small text-muted">Ce sont des <strong>estimations</strong> : elles deviennent plus précises à mesure que les agriculteurs déclarent leurs récoltes et que le robot collecte les prix publiés.</p>
+            </section>
+
+            <section id="formulaire">
+                <h2>6. La fenêtre du terrain</h2>
+                <p>En entrant sur l'accueil, une fenêtre s'ouvre tant qu'elle n'est pas remplie pour la saison. Vous la retrouvez à tout moment dans le menu de votre photo → <strong>Formulaire du terrain</strong>.</p>
+                <ul>
+                    <li><strong>1. Cette saison</strong> : les cultures (et la surface de chacune) ou les élevages (et le nombre d'animaux) que vous pensez faire. Le robot les met en tête du tableau, chiffrés pour votre surface. Pas encore décidé ? Cochez la case : le robot vous propose.</li>
+                    <li><strong>2. La saison passée</strong> : ce que vous avez fait, la production, le prix de vente, à qui vous avez vendu, le coût (total ou détaillé : semences, engrais, traitements, main-d'œuvre, eau, machines, transport, location), le résultat. Le robot se corrige avec ces vrais chiffres.</li>
+                    <li><strong>Mes cultures &amp; récoltes</strong> : la liste des cultures du terrain, pour déclarer une récolte ou annuler une culture.</li>
+                </ul>
+            </section>
+
+            <section id="recolte">
+                <h2>7. Déclarer une récolte</h2>
+                <p>Quand une culture est finie, ouvrez la fenêtre du terrain → « Mes cultures &amp; récoltes » → <strong>« Déclarer la récolte »</strong> : quantité (tonnes pour une culture, kg / litres / œufs pour l'élevage), prix de vente obtenu, coût réel si vous le connaissez, à qui vous avez vendu, résultat (réussie, partielle, échec).</p>
+                <p>C'est très important : <strong>le robot apprend de ces déclarations</strong>. Les rendements, prix et taux de réussite de votre zone sont corrigés avec ce que les agriculteurs ont réellement obtenu.</p>
+            </section>
+
+            <section id="zones">
+                <h2>8. Cultures les plus rentables</h2>
+                <p>Le menu de gauche → <strong>Cultures rentables</strong> classe les cultures et les élevages du plus rentable au moins rentable : <strong>votre localité</strong> (votre terrain), un <strong>gouvernorat</strong> au choix, la <strong>Tunisie</strong> (moyenne des gouvernorats producteurs) et le <strong>monde</strong>. Pour le monde, faute de prix mondial fiable, le classement suit la demande non couverte dans les pays suivis : là où il manque du produit, il y a des débouchés à l'export. Le badge « marché local » indique si la zone produit déjà trop (risque de prix bas).</p>
+            </section>
+
+            <section id="satellite">
+                <h2>9. Satellites et météo</h2>
+                <ul>
+                    <li><strong>Météo</strong> : prévisions sur 16 jours à l'endroit exact du terrain, et historique depuis 1940 pour les calculs.</li>
+                    <li><strong>Satellite</strong> : NDVI (vigueur de la végétation) et images de votre champ. Le robot reconnaît la culture et prévient si la végétation chute.</li>
+                    <li><strong>Analyse par IA</strong> : le robot lit les images et les chiffres et rédige un conseil.</li>
+                </ul>
+            </section>
+
+            <section id="notifications">
+                <h2>10. Notifications et alertes</h2>
+                <p>La <strong>cloche</strong> en haut sert aux informations de l'application : nouvelles statistiques, annonces, justificatif reçu, vérifié ou refusé.</p>
+                <p>Les <strong>alertes du robot</strong> arrivent par <strong>email</strong> et/ou <strong>SMS</strong>, seulement si vous les activez dans Paramètres : la meilleure culture de votre terrain change, le prix ou la réussite d'une culture prévue chute (marché qui se sature), gel, forte chaleur ou très forte pluie prévus dans les 3 jours, baisse de végétation vue par satellite. Une même alerte n'est jamais envoyée deux fois. Pour les SMS, le numéro de téléphone du profil est utilisé.</p>
+            </section>
+
+            <section id="formations">
+                <h2>11. Formations</h2>
+                <p>Menu de gauche → Formation : vidéos et documents par culture, avec recherche.</p>
+            </section>
+
+            <section id="faq">
+                <h2>12. Questions fréquentes</h2>
+                <p><strong>Le taux de réussite est faible, pourquoi ?</strong> Souvent : pas assez de pluie sur la période sans irrigation déclarée, risque de gel ou de chaleur. Déclarez un compteur d'eau si le terrain est irrigué.</p>
+                <p><strong>Les chiffres ne changent pas ?</strong> Le robot recalcule chaque nuit, ou quand vous cliquez sur « Actualiser l'analyse ».</p>
+                <p><strong>Mes données sont-elles partagées ?</strong> Vos terrains et récoltes servent aux calculs de zone de façon agrégée ; votre nom et vos coordonnées ne sont jamais montrés aux autres utilisateurs.</p>
+            </section>
+        </div>
+    </div>
+</div>
+{% endblock %}

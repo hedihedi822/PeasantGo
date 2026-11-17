@@ -1,0 +1,96 @@
+{% extends '_layout/formateur.html.twig' %}
+{% block title %}{{ 'Devenir formateur'|trans }} – PeasantGo.AI{% endblock %}
+{% block styles %}
+    .fm-hero { border-radius: 16px; padding: 2rem; color: #fff; background: linear-gradient(120deg, rgba(23,74,44,.96), rgba(44,125,75,.85)); }
+    .fm-hero h1 { font-weight: 800; color: #fff; }
+    .fm-hero .btn-light { color: #1f5c37; font-weight: 600; }
+    .fm-atout { display: flex; gap: .7rem; align-items: flex-start; }
+    .fm-atout i { color: var(--primary-color); font-size: 1.3rem; margin-top: .15rem; }
+{% endblock %}
+{% block body %}
+<section class="fm-hero mb-4 d-flex flex-wrap justify-content-between align-items-center gap-3">
+    <div>
+        <h1 class="h2 mb-1"><i class="fas fa-chalkboard-teacher me-2"></i>{{ 'Devenir formateur'|trans }}</h1>
+        <p class="mb-0">{{ 'Partagez votre savoir avec les agriculteurs : vos vidéos et vos documents sont publiés dans la page Formations.'|trans }}</p>
+    </div>
+    {% if app.user and app.user.formateur %}
+        <a href="{{ path('app_espace_formateur') }}" class="btn btn-light"><i class="fas fa-door-open me-1"></i>{{ 'Mon espace formateur'|trans }}</a>
+    {% else %}
+        <a href="{{ path('app_formateur_login') }}" class="btn btn-light"><i class="fas fa-sign-in-alt me-1"></i>{{ 'Déjà formateur ?'|trans }}</a>
+    {% endif %}
+</section>
+
+<div class="row g-4">
+    <div class="col-lg-4">
+        <div class="card shadow-sm"><div class="card-body d-grid gap-3">
+            <div class="fm-atout"><i class="fas fa-video"></i><div><strong>{{ 'Vidéos et PDF'|trans }}</strong><br><small class="text-muted">{{ 'Ajoutez-les depuis votre espace, ils sont en ligne aussitôt.'|trans }}</small></div></div>
+            <div class="fm-atout"><i class="fas fa-users"></i><div><strong>{{ 'Des milliers d’agriculteurs'|trans }}</strong><br><small class="text-muted">{{ 'Vos formations sont vues par tous les membres.'|trans }}</small></div></div>
+            <div class="fm-atout"><i class="fas fa-user-check"></i><div><strong>{{ 'Vérifié par l’équipe'|trans }}</strong><br><small class="text-muted">{{ 'Chaque candidature est étudiée avant d’ouvrir l’espace formateur.'|trans }}</small></div></div>
+        </div></div>
+    </div>
+    <div class="col-lg-8">
+        <div class="card shadow-sm"><div class="card-body">
+            {% if app.user and app.user.formateur %}
+                <p class="mb-0"><i class="fas fa-check-circle text-success me-1"></i>{{ 'Vous êtes formateur.'|trans }} <a href="{{ path('app_espace_formateur') }}">{{ 'Mon espace formateur'|trans }}</a></p>
+            {% elseif demande and demande.statut in ['nouvelle', 'en_cours'] %}
+                <p class="mb-0"><i class="fas fa-hourglass-half text-warning me-1"></i>{{ 'Votre candidature est en cours d’examen. Vous serez prévenu dès que l’équipe l’aura étudiée.'|trans }}</p>
+            {% else %}
+                <h2 class="h5 section-title">{{ 'Votre candidature'|trans }}</h2>
+                {% if app.user %}<p class="small text-muted">{{ 'Vous postulez avec votre compte'|trans }} ({{ app.user.email }}).</p>{% endif %}
+                <form id="formFormateur" novalidate>
+                    <input type="text" name="site" class="d-none" tabindex="-1" autocomplete="off" aria-hidden="true">
+                    <div class="row g-2">
+                        {% if not app.user %}
+                            <div class="col-md-6"><label class="form-label small mb-0" for="fmNom">{{ 'Nom complet *'|trans }}</label><input id="fmNom" name="nom" class="form-control" maxlength="150"></div>
+                            <div class="col-md-6"><label class="form-label small mb-0" for="fmEmail">{{ 'Email *'|trans }}</label><input id="fmEmail" name="email" type="email" class="form-control" maxlength="180"></div>
+                            <div class="col-md-6"><label class="form-label small mb-0" for="fmTel">{{ 'Téléphone *'|trans }}</label><input id="fmTel" name="telephone" class="form-control" maxlength="30"></div>
+                            <div class="col-md-3"><label class="form-label small mb-0" for="fmMdp">{{ 'Mot de passe *'|trans }}</label><input id="fmMdp" name="motDePasse" type="password" class="form-control" autocomplete="new-password"></div>
+                            <div class="col-md-3"><label class="form-label small mb-0" for="fmMdp2">{{ 'Confirmer *'|trans }}</label><input id="fmMdp2" name="confirmation" type="password" class="form-control" autocomplete="new-password"></div>
+                            <div class="col-12"><small class="text-muted">{{ 'Ce mot de passe vous servira à vous connecter quand votre candidature sera acceptée (8 caractères minimum, dont un chiffre).'|trans }}</small></div>
+                        {% endif %}
+                        <div class="col-md-8"><label class="form-label small mb-0" for="fmProfession">{{ 'Métier / qualification'|trans }}</label><input id="fmProfession" name="profession" class="form-control" maxlength="150" placeholder="{{ 'Ex : ingénieur agronome, vétérinaire, apiculteur'|trans }}"></div>
+                        <div class="col-md-4"><label class="form-label small mb-0" for="fmExp">{{ "Années d'expérience"|trans }}</label><input id="fmExp" name="experience" type="number" min="0" max="70" class="form-control"></div>
+                    </div>
+                    <p class="small fw-semibold mt-3 mb-1">{{ 'Domaines que vous pouvez enseigner *'|trans }}</p>
+                    <div class="row row-cols-1 row-cols-md-2 g-1">
+                        {% for k, v in domaines %}
+                            <div class="col"><div class="form-check"><input class="form-check-input" type="checkbox" name="domaines" value="{{ k }}" id="fmD{{ k }}"><label class="form-check-label small" for="fmD{{ k }}">{{ v|trans }}</label></div></div>
+                        {% endfor %}
+                    </div>
+                    <p class="small fw-semibold mt-3 mb-1">{{ 'Formats proposés'|trans }}</p>
+                    <div class="d-flex flex-wrap gap-3">
+                        {% for k, v in formats %}
+                            <div class="form-check"><input class="form-check-input" type="checkbox" name="formats" value="{{ k }}" id="fmF{{ k }}"><label class="form-check-label small" for="fmF{{ k }}">{{ v|trans }}</label></div>
+                        {% endfor %}
+                    </div>
+                    <div class="mt-3"><label class="form-label small mb-0" for="fmLien">{{ 'Lien vers un exemple (vidéo, page, profil)'|trans }}</label><input id="fmLien" name="lien" type="url" class="form-control" maxlength="255" placeholder="https://"></div>
+                    <div class="mt-2"><label class="form-label small mb-0" for="fmMessage">{{ 'Présentez-vous en quelques lignes'|trans }}</label><textarea id="fmMessage" name="message" class="form-control" rows="3" maxlength="3000"></textarea></div>
+                    <button type="submit" class="btn btn-success mt-3"><i class="fas fa-paper-plane me-1"></i>{{ 'Envoyer ma candidature'|trans }}</button>
+                </form>
+            {% endif %}
+        </div></div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formFormateur');
+    if (!form) return;
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const f = new FormData(this);
+        const body = Object.fromEntries([...f.entries()].filter(([k]) => !['domaines', 'formats'].includes(k)));
+        body.domaines = f.getAll('domaines');
+        body.formats = f.getAll('formats');
+        const btn = this.querySelector('[type=submit]');
+        btn.disabled = true;
+        try {
+            const r = await PG.api('/api/formateur', { method: 'POST', body });
+            PG.toast(r.message);
+            this.outerHTML = `<p class="mb-0"><i class="fas fa-check-circle text-success me-1"></i>${PG.esc(r.message)}</p>`;
+        } catch (err) { PG.toast(err.message, 'warning'); btn.disabled = false; }
+    });
+});
+</script>
+{% endblock %}

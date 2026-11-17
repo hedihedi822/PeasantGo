@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PeasantGo.AI{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap{{ app.request.locale == 'ar' ? '.rtl' }}.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary-color: #2c7d4b; --primary-dark: #1f5c37; --soft: #eef6f1; --box-shadow: 0 4px 12px rgba(0,0,0,.08); }
+        body { background: linear-gradient(rgba(255,255,255,.88), rgba(255,255,255,.88)), url('/Images/fond-ferme.avif') center/cover fixed; color: #343a40; min-height: 100vh; }
+        .navbar { background: rgba(255,255,255,.96) !important; box-shadow: 0 2px 10px rgba(0,0,0,.08); }
+        .navbar-brand span { color: var(--primary-color); font-weight: 700; }
+        .card { border: none; border-radius: 12px; box-shadow: var(--box-shadow); }
+        .btn-success, .btn-primary { background: var(--primary-color); border-color: var(--primary-color); }
+        .btn-success:hover, .btn-primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .text-pg { color: var(--primary-color); }
+        .bg-soft { background: var(--soft); }
+        .section-title { color: var(--primary-color); font-weight: 700; }
+        {% block styles %}{% endblock %}
+    </style>
+    {% block head %}{% endblock %}
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+<body>
+    {% block navbar %}{{ include('_partials/navbar.html.twig', {fixed: false}) }}{% endblock %}
+    <main class="{% block main_class %}container py-4{% endblock %}">
+        {{ include('_partials/flash.html.twig') }}
+        {% block body %}{% endblock %}
+    </main>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,27 @@
+{% extends '_layout/formateur.html.twig' %}
+{% block title %}{{ 'Connexion formateur'|trans }} – PeasantGo.AI{% endblock %}
+{% block body %}
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-5">
+        <div class="card shadow-sm">
+            <div class="card-body p-4">
+                <h1 class="h4 section-title text-center mb-1"><i class="fas fa-chalkboard-teacher me-2"></i>{{ 'Espace formateur'|trans }}</h1>
+                <p class="text-muted small text-center">{{ 'Connectez-vous pour publier vos vidéos et vos documents.'|trans }}</p>
+                {% if erreur %}<div class="alert alert-danger small py-2">{{ erreur.messageKey|trans(erreur.messageData, 'security') }}</div>{% endif %}
+                <form method="post" action="{{ path('app_formateur_login') }}">
+                    <input type="hidden" name="_espace" value="formateur">
+                    <input type="hidden" name="accountType" value="person">
+                    <input type="hidden" name="_csrf_token" value="{{ csrf_token('authenticate') }}">
+                    <div class="mb-3"><label class="form-label" for="fEmail">{{ 'Email'|trans }}</label><input id="fEmail" name="_email" type="email" class="form-control" value="{{ dernier }}" required autofocus autocomplete="username"></div>
+                    <div class="mb-3"><label class="form-label" for="fMdp">{{ 'Mot de passe'|trans }}</label><input id="fMdp" name="_password" type="password" class="form-control" required autocomplete="current-password"></div>
+                    <button class="btn btn-success w-100" type="submit"><i class="fas fa-sign-in-alt me-1"></i>{{ 'Se connecter'|trans }}</button>
+                </form>
+                <div class="d-flex justify-content-between small mt-3">
+                    <a href="{{ path('app_passwordforgetten') }}">{{ 'Mot de passe oublié ?'|trans }}</a>
+                    <a href="{{ path('app_devenir_formateur') }}">{{ 'Pas encore formateur ?'|trans }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

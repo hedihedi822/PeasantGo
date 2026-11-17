@@ -1,0 +1,129 @@
+{% extends '_layout/formateur.html.twig' %}
+{% block title %}{{ 'Mon espace formateur'|trans }} – PeasantGo.AI{% endblock %}
+{% block styles %}
+    .fm-ligne { border-bottom: 1px solid #eef2ef; padding: .8rem 0; }
+    .fm-ligne:last-child { border-bottom: none; }
+    .progress { height: 8px; }
+    .prix-gratuite { background: #e6f4ea; color: #1e6b3a; }
+    .prix-payante { background: #fff3e0; color: #a35a00; }
+{% endblock %}
+{% block body %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body d-flex flex-wrap justify-content-between align-items-center gap-2">
+        <div>
+            <h1 class="h4 section-title mb-1"><i class="fas fa-chalkboard-teacher me-2"></i>{{ 'Mon espace formateur'|trans }}</h1>
+            <p class="text-muted small mb-0">{{ app.user.nomAffiche }}</p>
+        </div>
+        <a href="{{ path('app_formation_user') }}" class="btn btn-outline-success btn-sm" target="_blank" rel="noopener"><i class="fas fa-graduation-cap me-1"></i>{{ 'Voir la page Formations'|trans }}</a>
+    </div>
+</div>
+
+{% if not app.user.formateur %}
+    <div class="card shadow-sm"><div class="card-body">
+        {% if demande and demande.statut in ['nouvelle', 'en_cours'] %}
+            <p class="mb-0"><i class="fas fa-hourglass-half text-warning me-1"></i>{{ 'Votre candidature est en cours d’examen. Vous serez prévenu dès que l’équipe l’aura étudiée.'|trans }}</p>
+        {% elseif demande and demande.statut == 'refusee' %}
+            <p class="mb-0"><i class="fas fa-times-circle text-danger me-1"></i>{{ 'Votre candidature n’a pas été retenue.'|trans }} <a href="{{ path('app_devenir_formateur') }}">{{ 'Envoyer une nouvelle candidature'|trans }}</a></p>
+        {% else %}
+            <p class="mb-0">{{ 'Vous n’êtes pas encore formateur.'|trans }} <a href="{{ path('app_devenir_formateur') }}">{{ 'Devenir formateur'|trans }}</a></p>
+        {% endif %}
+    </div></div>
+{% else %}
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card shadow-sm"><div class="card-body">
+            <h2 class="h5 section-title"><i class="fas fa-plus-circle me-1"></i>{{ 'Ajouter une formation'|trans }}</h2>
+            <form id="formPublier" novalidate>
+                <div class="mb-2"><label class="form-label small mb-0" for="pTitre">{{ 'Titre *'|trans }}</label><input id="pTitre" name="titre" class="form-control" maxlength="200" placeholder="{{ 'Ex : Bien irriguer la tomate au goutte-à-goutte'|trans }}"></div>
+                <div class="row g-2 mb-2">
+                    <div class="col-md-6"><label class="form-label small mb-0" for="pType">{{ 'Thème *'|trans }}</label>
+                        <select id="pType" name="type" class="form-select"><option value="">{{ 'Choisir…'|trans }}</option>{% for t in types %}<option value="{{ t }}">{{ t|trans }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label small mb-0" for="pSous">{{ 'Culture ou élevage *'|trans }}</label><input id="pSous" name="sousType" class="form-control" maxlength="120" placeholder="{{ 'Ex : Tomate, Ovins…'|trans }}"></div>
+                    <div class="col-md-6"><label class="form-label small mb-0" for="pNiveau">{{ 'Niveau'|trans }}</label>
+                        <select id="pNiveau" name="niveau" class="form-select">{% for k, v in niveaux %}<option value="{{ k }}">{{ v|trans }}</option>{% endfor %}</select></div>
+                    <div class="col-md-6"><label class="form-label small mb-0" for="pDuree">{{ 'Durée (minutes)'|trans }}</label><input id="pDuree" name="duree" type="number" min="1" max="600" class="form-control"></div>
+                </div>
+                <div class="mb-2"><label class="form-label small mb-0" for="pDesc">{{ 'Description'|trans }}</label><textarea id="pDesc" name="description" class="form-control" rows="3" maxlength="3000"></textarea></div>
+                <div class="mb-2"><label class="form-label small mb-0" for="pVideo"><i class="fas fa-video me-1 text-success"></i>{{ 'Vidéo (MP4, WEBM ou MOV)'|trans }}</label><input id="pVideo" name="video" type="file" class="form-control" accept="video/mp4,video/webm,video/quicktime"></div>
+                <div class="mb-2"><label class="form-label small mb-0" for="pDoc"><i class="fas fa-file-alt me-1 text-primary"></i>{{ 'Document (PDF ou Word)'|trans }}</label><input id="pDoc" name="document" type="file" class="form-control" accept=".pdf,.doc,.docx,.odt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.oasis.opendocument.text"></div>
+                <p class="small text-muted">{{ 'Au moins une vidéo ou un document. Taille maximale d’une vidéo sur ce serveur :'|trans }} {{ videoMaxMo|round }} Mo.</p>
+                <div class="mb-3 p-2 rounded border bg-light">
+                    <label class="form-label small mb-1 d-block">{{ 'Accès à la formation *'|trans }}</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="acces" id="pGratuite" value="gratuite" checked>
+                        <label class="btn btn-outline-success" for="pGratuite"><i class="fas fa-gift me-1"></i>{{ 'Gratuite'|trans }}</label>
+                        <input type="radio" class="btn-check" name="acces" id="pPayante" value="payante">
+                        <label class="btn btn-outline-warning" for="pPayante"><i class="fas fa-coins me-1"></i>{{ 'Payante'|trans }}</label>
+                    </div>
+                    <div class="mt-2 d-none" id="pPrixBloc">
+                        <label class="form-label small mb-0" for="pPrix">{{ 'Prix *'|trans }}</label>
+                        <div class="input-group"><input id="pPrix" name="prix" type="number" min="1" max="5000" step="0.5" class="form-control" placeholder="{{ 'Ex : 30'|trans }}"><span class="input-group-text">DT</span></div>
+                    </div>
+                </div>
+                <div class="progress mb-2 d-none" id="pProgres"><div class="progress-bar bg-success" style="width:0%"></div></div>
+                <button type="submit" class="btn btn-success w-100" id="pEnvoyer"><i class="fas fa-upload me-1"></i>{{ 'Publier'|trans }}</button>
+            </form>
+        </div></div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card shadow-sm"><div class="card-body">
+            <h2 class="h5 section-title"><i class="fas fa-list me-1"></i>{{ 'Mes formations'|trans }} ({{ formations|length }})</h2>
+            {% for f in formations %}
+                <div class="fm-ligne d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <div>
+                        <strong>{{ f.title }}</strong> <span class="badge {{ f.payante ? 'prix-payante' : 'prix-gratuite' }}">{{ f.prixAffiche|trans }}</span>{% if not f.active %} <span class="badge bg-secondary">{{ 'masquée'|trans }}</span>{% endif %}<br>
+                        <small class="text-muted">{{ f.type|trans }} · {{ f.sousType }} · {{ f.createdAt|date('d/m/Y') }} · <i class="fas fa-eye"></i> {{ f.views }}
+                            {% if f.hasVideo %} · <i class="fas fa-video"></i>{% endif %}{% if f.hasPdf %} · <i class="fas fa-file-pdf"></i>{% endif %}{% if f.hasWord %} · <i class="fas fa-file-word"></i>{% endif %}
+                            {% if f.payante %} · <i class="fas fa-shopping-cart"></i> {{ ventes[f.id].n ?? 0 }} {{ 'vente(s)'|trans }}{% if ventes[f.id] is defined %} ({{ ventes[f.id].total|number_format(0, ',', ' ') }} DT){% endif %}{% endif %}</small>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" data-action="{{ f.active ? 'masquer' : 'afficher' }}" data-id="{{ f.id }}">{{ (f.active ? 'Masquer' : 'Afficher')|trans }}</button>
+                        <button type="button" class="btn btn-outline-danger btn-sm" data-action="supprimer" data-id="{{ f.id }}" title="{{ 'Supprimer'|trans }}"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+            {% else %}
+                <p class="text-muted small mb-0">{{ 'Vous n’avez encore rien publié.'|trans }}</p>
+            {% endfor %}
+        </div></div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('formPublier');
+    const prixBloc = document.getElementById('pPrixBloc');
+    document.querySelectorAll('input[name=acces]').forEach(r => r.addEventListener('change', () => {
+        const payante = document.getElementById('pPayante').checked;
+        prixBloc.classList.toggle('d-none', !payante);
+        if (payante) document.getElementById('pPrix').focus();
+    }));
+    if (form) form.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const btn = document.getElementById('pEnvoyer');
+        const prog = document.getElementById('pProgres');
+        const barre = prog.querySelector('.progress-bar');
+        btn.disabled = true; prog.classList.remove('d-none');
+        // XMLHttpRequest pour suivre l'envoi des grosses vidéos
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/api/formateur/formations');
+        xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+        xhr.upload.onprogress = ev => { if (ev.lengthComputable) barre.style.width = Math.round(ev.loaded * 100 / ev.total) + '%'; };
+        xhr.onload = () => {
+            let r = {};
+            try { r = JSON.parse(xhr.responseText); } catch (err) { r = { message: '{{ 'Erreur du serveur : le fichier est peut-être trop lourd.'|trans|e('js') }}' }; }
+            if (xhr.status < 300 && r.success) { PG.toast(r.message); setTimeout(() => location.reload(), 800); }
+            else { PG.toast(r.message || 'Erreur', 'danger'); btn.disabled = false; prog.classList.add('d-none'); barre.style.width = '0%'; }
+        };
+        xhr.onerror = () => { PG.toast('{{ 'Connexion interrompue, réessayez.'|trans|e('js') }}', 'danger'); btn.disabled = false; };
+        xhr.send(new FormData(form));
+    });
+    document.querySelectorAll('[data-action]').forEach(b => b.addEventListener('click', async () => {
+        if (b.dataset.action === 'supprimer' && !confirm('{{ 'Supprimer définitivement cette formation ?'|trans|e('js') }}')) return;
+        try { const r = await PG.api(`/api/formateur/formations/${b.dataset.id}/${b.dataset.action}`, { method: 'POST' }); PG.toast(r.message); setTimeout(() => location.reload(), 600); }
+        catch (err) { PG.toast(err.message, 'danger'); }
+    }));
+});
+</script>
+{% endblock %}

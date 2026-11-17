@@ -1,0 +1,13 @@
+{# Arabe : mise en page de droite à gauche (Bootstrap RTL est chargé à la place de Bootstrap) #}
+{% if app.request.locale == 'ar' %}
+<style>
+    body { font-family: 'Segoe UI', Tahoma, 'Noto Naskh Arabic', 'Noto Sans Arabic', Arial, sans-serif; }
+    [dir=rtl] .sidebar { left: auto !important; right: 0; }
+    [dir=rtl] .sidebar .nav-link i { margin-right: 0 !important; margin-left: 10px; }
+    [dir=rtl] .main-content { margin-left: 0 !important; margin-right: var(--sidebar-width); }
+    @media (max-width: 991.98px) { [dir=rtl] .main-content { margin-right: 0; } }
+    [dir=rtl] .navbar-brand img { margin-right: 0 !important; margin-left: 10px; }
+    [dir=rtl] .robot-table td, [dir=rtl] .robot-table th, [dir=rtl] .cl-table td { text-align: right; }
+    [dir=rtl] .fa-arrow-right, [dir=rtl] .fa-sign-in-alt, [dir=rtl] .fa-sign-out-alt, [dir=rtl] .fa-arrow-left { transform: scaleX(-1); }
+</style>
+{% endif %}

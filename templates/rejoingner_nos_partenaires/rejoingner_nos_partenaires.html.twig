@@ -1,0 +1,449 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rejoingner nos Partenaires - PeasantGo.AI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap{{ app.request.locale == 'ar' ? '.rtl' }}.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #2c7d4b;
+            --secondary-color: #f8f9fa;
+            --accent-color: #e9ecef;
+            --text-color: #343a40;
+            --navbar-height: 68px;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background-color: #f5f7f9;
+            margin: 0;
+            padding-top: var(--navbar-height);
+            display: flex;
+            justify-content: center;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: white !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: var(--navbar-height);
+            padding: 0.5rem 1.5rem;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand img {
+            margin-right: 10px;
+        }
+
+        .user-avatar {
+            cursor: pointer;
+            border: 2px solid var(--primary-color);
+            padding: 2px;
+            transition: all 0.2s;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .page-container {
+            background-color: white;
+            width: 210mm;
+            min-height: 297mm;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20mm;
+            box-sizing: border-box;
+            margin-top: 1rem;
+        }
+
+        .main-content {
+            padding: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .filter-row {
+            background-color: var(--secondary-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: var(--border-radius);
+            border: 1px solid #ced4da;
+            box-shadow: none;
+            padding: 0.5rem;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(44, 125, 75, 0.25);
+        }
+
+        .search-btn {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            padding: 0.5rem 1.5rem;
+            border-radius: var(--border-radius);
+            transition: all 0.2s;
+        }
+
+        .search-btn:hover {
+            background-color: #236b3c;
+            transform: translateY(-2px);
+        }
+
+        .form-check-input:checked {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+
+        .modal-content {
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+        }
+
+        .modal-header {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .modal-footer .btn-success {
+            background-color: var(--primary-color);
+            border: none;
+        }
+
+        .modal-footer .btn-success:hover {
+            background-color: #236b3c;
+        }
+
+        .benefit-icon {
+            color: var(--primary-color);
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .back-arrow {
+            font-size: 1.5rem;
+            color: var(--primary-color);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .back-arrow i {
+            margin-right: 0.5rem;
+        }
+
+        .back-arrow:hover {
+            color: #236b3c;
+        }
+
+        .main-title {
+            color: white;
+            background-color: var(--primary-color);
+            padding: 15px;
+            border-radius: var(--border-radius);
+            display: inline-block;
+            margin-bottom: 1rem;
+        }
+
+        .main-title-container {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin-bottom: 20px;
+        }
+    </style>
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+<body>
+    {{ include('_partials/navbar.html.twig', {fixed: false}) }}
+
+    <!-- Main Content -->
+    <div class="page-container">
+        <main class="main-content">
+            <div class="container-fluid">
+                <!-- Back Arrow -->
+                <a href="{{ path('app_home_user') }}" class="back-arrow"><i class="fas fa-arrow-left"></i> Retour</a>
+                {{ include('_partials/flash.html.twig') }}
+
+                <!-- Header Section -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body text-center main-title-container">
+                        <h1 class="main-title">Rejoignez nos Partenaires</h1>
+                        <p class="text-white mb-4">Rejoignez notre réseau de partenaires privilégiés et bénéficiez d'avantages exclusifs tout en contribuant à notre croissance mutuelle.</p>
+                    </div>
+                </div>
+
+                <!-- Benefits Section -->
+                <div class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h4 class="section-title">Pourquoi devenir partenaire ?</h4>
+                        <div class="row">
+                            <div class="col-md-4 mb-4">
+                                <div class="text-center">
+                                    <i class="fas fa-gift benefit-icon"></i>
+                                    <h5 class="font-weight-bold">Services Premium Gratuits</h5>
+                                    <p class="text-muted">Accédez à tous nos services payants sans frais en tant que partenaire privilégié.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="text-center">
+                                    <i class="fas fa-chart-line benefit-icon"></i>
+                                    <h5 class="font-weight-bold">Croissance Mutuelle</h5>
+                                    <p class="text-muted">Bénéficiez de notre réseau et de notre visibilité pour développer votre activité.</p>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-4">
+                                <div class="text-center">
+                                    <i class="fas fa-handshake benefit-icon"></i>
+                                    <h5 class="font-weight-bold">Support Personnalisé</h5>
+                                    <p class="text-muted">Un représentant dédié pour vous accompagner dans ce partenariat.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Partnership Form -->
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h4 class="section-title">Formulaire de Partenariat</h4>
+                        <p class="text-muted mb-4">Remplissez ce formulaire pour que notre équipe puisse vous contacter.</p>
+                        <form id="partnershipForm" class="filter-row">
+                            <!-- Contact Information -->
+                            <h5 class="section-title">Comment pouvons-nous vous contacter ?</h5>
+                            <p class="text-muted mb-4">Veuillez fournir au moins un moyen de contact</p>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Email</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-envelope"></i></span>
+                                        <input type="email" name="email" value="{{ app.user.email }}" class="form-control" placeholder="votre@email.com">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Téléphone</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-phone"></i></span>
+                                        <input type="tel" name="phone" class="form-control" placeholder="+212 6 12 34 56 78">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Profil Facebook</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fab fa-facebook-f"></i></span>
+                                        <input type="url" name="facebook" class="form-control" placeholder="https://facebook.com/votreprofil">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Profil Instagram</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fab fa-instagram"></i></span>
+                                        <input type="url" name="instagram" class="form-control" placeholder="https://instagram.com/votreprofil">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">WhatsApp</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fab fa-whatsapp"></i></span>
+                                        <input type="tel" name="whatsapp" class="form-control" placeholder="+212 6 12 34 56 78">
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Autre moyen de contact</label>
+                                    <div class="input-group">
+                                        <span class="input-group-text"><i class="fas fa-link"></i></span>
+                                        <input type="text" name="other_contact" class="form-control" placeholder="Lien ou autre information">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- How You Can Help -->
+                            <h5 class="section-title mt-4">Comment pouvez-vous nous aider ?</h5>
+                            <p class="text-muted mb-4">Sélectionnez toutes les options qui s'appliquent</p>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="help_method" value="promotion" id="promotion">
+                                        <label class="form-check-label" for="promotion">Promotion de nos services à votre audience</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="help_method" value="content" id="content">
+                                        <label class="form-check-label" for="content">Création de contenu pour notre plateforme</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="help_method" value="feedback" id="feedback">
+                                        <label class="form-check-label" for="feedback">Feedback et amélioration de nos services</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="help_method" value="technical" id="technical">
+                                        <label class="form-check-label" for="technical">Support technique ou expertise spécifique</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="help_method" value="other" id="other_help">
+                                        <label class="form-check-label" for="other_help">Autre (précisez ci-dessous)</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <textarea name="other_help" class="form-control" rows="4" placeholder="Décrivez comment vous pouvez nous aider..."></textarea>
+                                </div>
+                            </div>
+
+                            <!-- Free Services -->
+                            <h5 class="section-title mt-4">Services payants gratuits pour partenaires</h5>
+                            <p class="text-muted mb-4">Quels services souhaiteriez-vous utiliser gratuitement ?</p>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service1" id="service1">
+                                        <label class="form-check-label" for="service1">Service Premium <small class="text-muted">Accès complet à toutes les fonctionnalités avancées</small></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service2" id="service2">
+                                        <label class="form-check-label" for="service2">Formations en ligne <small class="text-muted">Accès illimité à toutes nos formations premium</small></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service3" id="service3">
+                                        <label class="form-check-label" for="service3">Support prioritaire <small class="text-muted">Réponses rapides et assistance dédiée</small></label>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service4" id="service4">
+                                        <label class="form-check-label" for="service4">Outils analytiques <small class="text-muted">Accès aux données et analyses avancées</small></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service5" id="service5">
+                                        <label class="form-check-label" for="service5">Espace de co-working <small class="text-muted">Accès à nos espaces physiques (si disponibles)</small></label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="free_services" value="service6" id="service6">
+                                        <label class="form-check-label" for="service6">Réseautage exclusif <small class="text-muted">Invitations aux événements privés pour partenaires</small></label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Additional Info -->
+                            <h5 class="section-title mt-4">Informations complémentaires</h5>
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">À propos de vous/votre entreprise</label>
+                                    <textarea name="about" class="form-control" rows="4" placeholder="Décrivez brièvement votre activité, votre audience ou votre expertise..."></textarea>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label class="form-label">Comment avez-vous entendu parler de nous ?</label>
+                                    <select name="referral_source" class="form-select">
+                                        <option value="">Sélectionnez une option</option>
+                                        <option value="social">Réseaux sociaux</option>
+                                        <option value="friend">Recommandation</option>
+                                        <option value="search">Moteur de recherche</option>
+                                        <option value="event">Événement</option>
+                                        <option value="other">Autre</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- Submit Button -->
+                            <div class="text-center mt-4">
+                                <button type="submit" class="search-btn">
+                                    <i class="fas fa-paper-plane me-1"></i> Envoyer la demande de partenariat
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Success Modal -->
+                <div class="modal fade" id="successModal" tabindex="-1" aria-labelledby="successModalLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-dialog-centered">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h5 class="modal-title" id="successModalLabel">
+                                    <i class="fas fa-check-circle me-2"></i>Demande envoyée
+                                </h5>
+                                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                            </div>
+                            <div class="modal-body text-center">
+                                <i class="fas fa-check-circle" style="font-size: 3rem; color: var(--primary-color);"></i>
+                                <h4 class="mt-3">Demande envoyée avec succès !</h4>
+                                <p class="text-muted">Nous avons bien reçu votre demande de partenariat. Un représentant vous contactera dans les plus brefs délais.</p>
+                            </div>
+                            <div class="modal-footer justify-content-center">
+                                <button type="button" class="btn btn-success" data-bs-dismiss="modal">Fermer</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('partnershipForm');
+            form.addEventListener('submit', async function (e) {
+                e.preventDefault();
+                const fd = new FormData(form);
+                const body = Object.fromEntries([...fd.entries()].filter(([k]) => !['help_method', 'free_services'].includes(k)));
+                body.help_method = fd.getAll('help_method');
+                body.free_services = fd.getAll('free_services');
+
+                if (!body.email) { PG.toast("L'email est obligatoire.", 'warning'); return; }
+                if (!body.help_method.length && !(body.other_help || '').trim()) { PG.toast('Indiquez au moins une façon dont vous pouvez nous aider.', 'warning'); return; }
+
+                const btn = form.querySelector('button[type="submit"]');
+                btn.disabled = true;
+                try {
+                    await PG.api('{{ path('api_partenariat') }}', { method: 'POST', body });
+                    form.reset();
+                    new bootstrap.Modal(document.getElementById('successModal')).show();
+                } catch (err) {
+                    PG.toast(err.message, 'danger');
+                } finally {
+                    btn.disabled = false;
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
+
+
+

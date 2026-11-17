@@ -1,0 +1,308 @@
+{# Fenêtre flottante du terrain actif : 1. cette saison, 2. mes résultats (cultures de cette saison terminées + saison passée).
+   S'ouvre toute seule sur l'accueil tant que la saison n'est pas remplie, ou quand une culture de cette saison est terminée. #}
+<style>
+    #formulaireTerrainModal .ft-onglets .nav-link { color: var(--primary-color); }
+    #formulaireTerrainModal .ft-onglets .nav-link.active { background: var(--primary-color); color: #fff; }
+    #formulaireTerrainModal .ft-ligne { background: #f6faf7; border-radius: 10px; padding: .75rem; margin-bottom: .6rem; position: relative; }
+    #formulaireTerrainModal .ft-ligne .btn-suppr { position: absolute; top: .35rem; right: .45rem; }
+    #formulaireTerrainModal .form-label { margin-bottom: .1rem; font-size: .8rem; }
+    #formulaireTerrainModal .fait { color: #2e7d32; }
+</style>
+<div class="modal fade" id="formulaireTerrainModal" tabindex="-1" aria-labelledby="formulaireTerrainTitre" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--primary-color); color: #fff;">
+                <h5 class="modal-title" id="formulaireTerrainTitre"><i class="fas fa-clipboard-list me-2"></i>{{ 'Formulaire du terrain'|trans }} <span id="ftNom"></span></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-2" id="ftIntro">{{ 'Deux questions pour que le robot calcule juste : ce que vous pensez faire cette saison, et ce que vous avez fait la saison passée.'|trans }}</p>
+                <ul class="nav nav-pills ft-onglets mb-3 gap-1" role="tablist">
+                    <li class="nav-item"><button type="button" class="nav-link active" data-onglet="1"><span class="ft-etat" data-partie="1"></span> {{ '1. Cette saison'|trans }} <span class="small" id="ftCampagne"></span></button></li>
+                    <li class="nav-item"><button type="button" class="nav-link" data-onglet="2"><span class="ft-etat" data-partie="2"></span> {{ '2. Mes résultats'|trans }} <span class="badge bg-warning text-dark d-none" id="ftNbADeclarer"></span></button></li>
+                </ul>
+
+                {# ---------------- Partie 1 ---------------- #}
+                <div class="ft-pane" data-pane="1">
+                    <p class="small mb-2">{{ 'Quelles cultures et quels élevages pensez-vous faire cette saison sur ce terrain, et sur quelle surface ?'|trans }} <span class="text-muted" id="ftLibre"></span></p>
+                    <div id="ftP1Lignes"></div>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="ftP1Ajouter"><i class="fas fa-plus me-1"></i>{{ 'Ajouter une culture ou un élevage'|trans }}</button>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="ftP1Aucune">
+                        <label class="form-check-label small" for="ftP1Aucune">{{ 'Je n\'ai pas encore décidé : le robot me propose les plus rentables.'|trans }}</label>
+                    </div>
+                    <div class="text-end mt-2"><button type="button" class="btn btn-success" id="ftP1Enregistrer"><i class="fas fa-save me-1"></i>{{ 'Enregistrer et continuer'|trans }}</button></div>
+                </div>
+
+                {# ---------------- Partie 2 ---------------- #}
+                <div class="ft-pane d-none" data-pane="2">
+                    <div id="ftSaison" class="d-none mb-4">
+                        <h6 class="fw-bold"><i class="fas fa-tractor me-1 text-success"></i>{{ 'Cette saison : cultures terminées'|trans }}</h6>
+                        <p class="small text-muted mb-2">{{ 'Dites au robot ce que vous avez obtenu : il se corrige tout de suite pour vous et pour votre région.'|trans }}</p>
+                        <div id="ftSaisonListe" class="small"></div>
+                    <form id="ftRecolte" class="border rounded p-3 mt-2 bg-light d-none" novalidate>
+                        <h6 class="fw-bold mb-2"><i class="fas fa-tractor me-1 text-success"></i>{{ 'Déclarer la récolte'|trans }} : <span id="ftRecolteNom"></span></h6>
+                        <input type="hidden" id="ftRecolteId">
+                        <div class="row g-2">
+                            <div class="col-md-3"><label class="form-label" for="ftQuantite">{{ 'Quantité'|trans }} (<span class="ft-u">t</span>)</label><input id="ftQuantite" type="number" min="0" step="any" class="form-control form-control-sm" required></div>
+                            <div class="col-md-3"><label class="form-label" for="ftPrix">{{ 'Prix de vente'|trans }} ({{ 'DT'|trans }}/<span class="ft-up">kg</span>)</label><input id="ftPrix" type="number" min="0" step="any" class="form-control form-control-sm"></div>
+                            <div class="col-md-3"><label class="form-label" for="ftCout">{{ 'Coût réel total (DT)'|trans }}</label><input id="ftCout" type="number" min="0" step="any" class="form-control form-control-sm" placeholder="{{ 'optionnel'|trans }}"></div>
+                            <div class="col-md-3"><label class="form-label" for="ftDateRecolte">{{ 'Date de récolte / vente'|trans }}</label><input id="ftDateRecolte" type="date" class="form-control form-control-sm" required></div>
+                            <div class="col-md-3"><label class="form-label" for="ftResultat">{{ 'Résultat'|trans }}</label><select id="ftResultat" class="form-select form-select-sm ft-resultats" required></select></div>
+                            <div class="col-md-3"><label class="form-label" for="ftCanal">{{ 'Vendu à'|trans }}</label><select id="ftCanal" class="form-select form-select-sm ft-canaux"></select></div>
+                            <div class="col-md-6"><label class="form-label" for="ftRemarque">{{ 'Remarque (maladie, grêle, sécheresse…)'|trans }}</label><input id="ftRemarque" class="form-control form-control-sm" maxlength="2000"></div>
+                        </div>
+                        <div class="text-end mt-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="ftRecolteAnnuler">{{ 'Annuler'|trans }}</button>
+                            <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-check me-1"></i>{{ 'Enregistrer la récolte'|trans }}</button>
+                        </div>
+                    </form>
+                    </div>
+                    <h6 class="fw-bold"><i class="fas fa-history me-1 text-success"></i>{{ 'La saison passée'|trans }}</h6>
+                    <div id="ftPasseeFait" class="d-none small"><i class="fas fa-check-circle fait me-1"></i>{{ 'Déjà renseignée, merci.'|trans }} <button type="button" class="btn btn-link btn-sm p-0 align-baseline" id="ftPasseeAjouter">{{ 'Ajouter une autre culture ou un autre élevage'|trans }}</button></div>
+                    <div id="ftPasseeBloc">
+                    <p class="small mb-2">{{ 'Qu\'avez-vous cultivé ou élevé la saison passée sur ce terrain ? Vos vrais chiffres (production, prix de vente, coûts) corrigent le robot pour vous et pour votre région. Ils ne sont jamais montrés à d\'autres utilisateurs.'|trans }}</p>
+                    <div id="ftP2Deja" class="small mb-2"></div>
+                    <div id="ftP2Lignes"></div>
+                    <button type="button" class="btn btn-outline-success btn-sm" id="ftP2Ajouter"><i class="fas fa-plus me-1"></i>{{ 'Ajouter une culture ou un élevage de la saison passée'|trans }}</button>
+                    <div class="form-check mt-3">
+                        <input class="form-check-input" type="checkbox" id="ftP2Aucune">
+                        <label class="form-check-label small" for="ftP2Aucune">{{ 'Rien la saison passée sur ce terrain (terrain nouveau, en jachère…).'|trans }}</label>
+                    </div>
+                    <div class="text-end mt-2"><button type="button" class="btn btn-success" id="ftP2Enregistrer"><i class="fas fa-save me-1"></i>{{ 'Enregistrer'|trans }}</button></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer justify-content-between">
+                <a href="{{ path('app_choix_terrain') }}" class="small"><i class="fas fa-map me-1"></i>{{ 'Contour et justificatif du terrain'|trans }}</a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">{{ 'Fermer'|trans }}</button>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    if (!window.PG) return;
+    const { api, esc, toast, formatDate, formatNumber } = PG;
+    const modal = document.getElementById('formulaireTerrainModal');
+    let q = null;
+    const opt = cle => q.options.find(o => o.cle === cle);
+    const aujourdhui = () => new Date().toISOString().slice(0, 10);
+    const ajouterJours = (iso, n) => { const d = new Date(iso); d.setDate(d.getDate() + n); return d.toISOString().slice(0, 10); };
+    const singulier = u => u.replace(/s$/, '').replace(/^kg vif$/, 'kg');
+
+    function ouvrir() { if (window.bootstrap) bootstrap.Modal.getOrCreateInstance(modal).show(); }
+    function onglet(n) {
+        modal.querySelectorAll('[data-onglet]').forEach(b => b.classList.toggle('active', b.dataset.onglet == n));
+        modal.querySelectorAll('.ft-pane').forEach(p => p.classList.toggle('d-none', p.dataset.pane != n));
+    }
+    modal.querySelectorAll('[data-onglet]').forEach(b => b.addEventListener('click', () => onglet(b.dataset.onglet)));
+
+    function selectCultures(val) {
+        const g = f => q.options.filter(o => o.animal === f).map(o => `<option value="${o.cle}"${o.cle === val ? ' selected' : ''}>${esc(PGRobot.t ? PGRobot.t(o.nom) : o.nom)}</option>`).join('');
+        return `<option value="">{{ 'Choisir…'|trans|e('js') }}</option><optgroup label="{{ 'Cultures'|trans|e('js') }}">${g(false)}</optgroup><optgroup label="{{ 'Élevage'|trans|e('js') }}">${g(true)}</optgroup>`;
+    }
+    const options = (obj, val, vide) => (vide ? `<option value="">${vide}</option>` : '') + Object.entries(obj).map(([k, v]) => `<option value="${k}"${k === val ? ' selected' : ''}>${esc(v)}</option>`).join('');
+
+    async function charger() {
+        try {
+            q = await api('/api/terrain-actif/questionnaire');
+        } catch (e) { document.getElementById('ftIntro').textContent = e.message; return null; }
+        document.getElementById('ftNom').textContent = '« ' + q.terrain.nom + ' »';
+        document.getElementById('ftCampagne').textContent = '(' + q.libelleCampagne + ')';
+        const fait = p => p == 1 ? q.partie1 : (q.partie2 && !(q.aDeclarer || []).length);
+        modal.querySelectorAll('.ft-etat').forEach(s => s.innerHTML = fait(s.dataset.partie) ? '<i class="fas fa-check-circle fait"></i>' : '<i class="far fa-circle"></i>');
+        renderSaison();
+        document.getElementById('ftPasseeFait').classList.toggle('d-none', !q.partie2);
+        document.getElementById('ftPasseeBloc').classList.toggle('d-none', q.partie2);
+        modal.querySelectorAll('.ft-resultats').forEach(s => s.innerHTML = options(q.resultats, '', '{{ 'Choisir…'|trans|e('js') }}'));
+        modal.querySelectorAll('.ft-canaux').forEach(s => s.innerHTML = options(q.canaux, '', '—'));
+        const libre = Math.max(0, q.terrain.surface - q.terrain.surfaceUtilisee + q.prevues.filter(c => !c.animal).reduce((a, c) => a + c.surface, 0));
+        document.getElementById('ftLibre').textContent = `(surface libre : ${formatNumber(libre)} ha sur ${formatNumber(q.terrain.surface)} ha)`;
+
+        const p1 = document.getElementById('ftP1Lignes');
+        p1.innerHTML = '';
+        (q.prevues.length ? q.prevues : [null]).forEach(c => ajouterP1(c));
+        document.getElementById('ftP2Deja').innerHTML = q.passees.length
+            ? '<i class="fas fa-check-circle fait me-1"></i>Déjà déclaré : ' + q.passees.map(c => `${esc(c.culture)} (${c.animal ? c.effectif + ' ' : formatNumber(c.surface) + ' ha'})`).join(', ') + '. Vous pouvez en ajouter.'
+            : '';
+        const p2 = document.getElementById('ftP2Lignes');
+        if (!p2.children.length) ajouterP2();
+        return q;
+    }
+
+    // ----- Partie 1 -----
+    function ajouterP1(c) {
+        const div = document.createElement('div');
+        div.className = 'ft-ligne row g-2 align-items-end';
+        div.innerHTML = `<button type="button" class="btn-close btn-suppr" aria-label="Retirer"></button>
+            <div class="col-md-5"><label class="form-label">{{ 'Culture / élevage'|trans|e('js') }}</label><select class="form-select form-select-sm p1-cle">${selectCultures(c?.cle)}</select></div>
+            <div class="col-md-3"><label class="form-label p1-ulabel">{{ 'Surface (ha)'|trans|e('js') }}</label><input type="number" min="0" step="any" class="form-control form-control-sm p1-taille" value="${c ? (c.animal ? c.effectif : c.surface) : ''}"></div>
+            <div class="col-md-4"><label class="form-label">{{ 'Début prévu'|trans|e('js') }}</label><input type="date" class="form-control form-control-sm p1-debut" value="${c ? c.debut : ''}"></div>`;
+        const sel = div.querySelector('.p1-cle');
+        const maj = () => {
+            const o = opt(sel.value);
+            div.querySelector('.p1-ulabel').textContent = o && o.animal ? `{{ 'Nombre'|trans|e('js') }} (${PGRobot.t(o.uniteTaille)})` : '{{ 'Surface (ha)'|trans|e('js') }}';
+            if (o && !div.querySelector('.p1-debut').value) div.querySelector('.p1-debut').value = o.debutConseille;
+            if (o && o.animal && !div.querySelector('.p1-taille').value) div.querySelector('.p1-taille').value = o.tailleDefaut;
+        };
+        sel.addEventListener('change', maj);
+        div.querySelector('.btn-suppr').addEventListener('click', () => div.remove());
+        document.getElementById('ftP1Lignes').appendChild(div);
+        if (c) maj();
+    }
+    document.getElementById('ftP1Ajouter').addEventListener('click', () => ajouterP1(null));
+    document.getElementById('ftP1Enregistrer').addEventListener('click', async function () {
+        const cultures = [...document.querySelectorAll('#ftP1Lignes .ft-ligne')].map(l => {
+            const o = opt(l.querySelector('.p1-cle').value);
+            if (!o) return null;
+            const v = l.querySelector('.p1-taille').value;
+            return { cle: o.cle, [o.animal ? 'effectif' : 'surface']: v, debut: l.querySelector('.p1-debut').value };
+        }).filter(Boolean);
+        this.disabled = true;
+        try {
+            const r = await api('/api/terrain-actif/questionnaire/1', { method: 'POST', body: { cultures, aucune: document.getElementById('ftP1Aucune').checked } });
+            toast(r.message);
+            await charger();
+            document.dispatchEvent(new CustomEvent('pg:terrain-modifie', { detail: { recalcul: true } }));
+            if (!q.partie2) onglet(2);
+        } catch (e) { toast(e.message, 'warning'); }
+        this.disabled = false;
+    });
+
+    // ----- Partie 2 -----
+    function ajouterP2() {
+        const div = document.createElement('div');
+        div.className = 'ft-ligne';
+        const postes = Object.entries(q.postes).map(([k, v]) => `<div class="col-6 col-md-3"><label class="form-label">${esc(v)}</label><input type="number" min="0" step="any" class="form-control form-control-sm p2-poste" data-poste="${k}" placeholder="DT"></div>`).join('');
+        div.innerHTML = `<button type="button" class="btn-close btn-suppr" aria-label="Retirer"></button>
+            <div class="row g-2">
+                <div class="col-md-4"><label class="form-label">Culture / élevage</label><select class="form-select form-select-sm p2-cle">${selectCultures('')}</select></div>
+                <div class="col-md-2"><label class="form-label p2-ulabel">Surface (ha)</label><input type="number" min="0" step="any" class="form-control form-control-sm p2-taille"></div>
+                <div class="col-md-3"><label class="form-label">Début (semis / mise en place)</label><input type="date" class="form-control form-control-sm p2-debut"></div>
+                <div class="col-md-3"><label class="form-label">Récolte / vente</label><input type="date" class="form-control form-control-sm p2-date"></div>
+                <div class="col-md-3"><label class="form-label">Production (<span class="p2-u">t</span>)</label><input type="number" min="0" step="any" class="form-control form-control-sm p2-quantite"></div>
+                <div class="col-md-3"><label class="form-label">Prix de vente moyen (DT/<span class="p2-up">kg</span>)</label><input type="number" min="0" step="any" class="form-control form-control-sm p2-prix"></div>
+                <div class="col-md-3"><label class="form-label">{{ 'Vendu à'|trans }}</label><select class="form-select form-select-sm p2-canal">${options(q.canaux, '', '—')}</select></div>
+                <div class="col-md-3"><label class="form-label">{{ 'Résultat'|trans }}</label><select class="form-select form-select-sm p2-resultat">${options(q.resultats, '', '{{ 'Choisir…'|trans|e('js') }}')}</select></div>
+                <div class="col-md-3"><label class="form-label">Coût total (DT)</label><input type="number" min="0" step="any" class="form-control form-control-sm p2-cout"></div>
+                <div class="col-md-3 d-flex align-items-end"><div class="form-check p2-irrigue-box"><input class="form-check-input p2-irrigue" type="checkbox"><label class="form-check-label small">Irrigué</label></div></div>
+                <div class="col-md-6 d-flex align-items-end"><button type="button" class="btn btn-link btn-sm p-0 p2-detail">Détailler les coûts (semences, engrais, main-d'œuvre…)</button></div>
+                <div class="col-12 d-none p2-postes"><div class="row g-2">${postes}</div></div>
+                <div class="col-12"><label class="form-label">Remarque (maladie, grêle, sécheresse, prix tombé au moment de la vente…)</label><input class="form-control form-control-sm p2-remarque" maxlength="2000"></div>
+            </div>`;
+        const sel = div.querySelector('.p2-cle');
+        sel.addEventListener('change', () => {
+            const o = opt(sel.value);
+            if (!o) return;
+            div.querySelector('.p2-ulabel').textContent = o.animal ? `{{ 'Nombre'|trans|e('js') }} (${PGRobot.t(o.uniteTaille)})` : '{{ 'Surface (ha)'|trans|e('js') }}';
+            div.querySelector('.p2-u').textContent = o.uniteProduction;
+            div.querySelector('.p2-up').textContent = o.animal ? singulier(o.uniteProduction) : 'kg';
+            div.querySelector('.p2-irrigue-box').classList.toggle('d-none', o.animal);
+            const debut = div.querySelector('.p2-debut');
+            if (!debut.value) { const d = new Date(o.debutConseille); d.setFullYear(d.getFullYear() - 1); debut.value = d.toISOString().slice(0, 10); }
+            const fin = div.querySelector('.p2-date');
+            if (!fin.value) { const f = ajouterJours(debut.value, o.cycle); fin.value = f > aujourdhui() ? aujourdhui() : f; }
+        });
+        div.querySelector('.p2-detail').addEventListener('click', () => div.querySelector('.p2-postes').classList.toggle('d-none'));
+        div.querySelectorAll('.p2-poste').forEach(i => i.addEventListener('input', () => {
+            const s = [...div.querySelectorAll('.p2-poste')].reduce((a, x) => a + (parseFloat(x.value) || 0), 0);
+            if (s > 0) div.querySelector('.p2-cout').value = Math.round(s * 100) / 100;
+        }));
+        div.querySelector('.btn-suppr').addEventListener('click', () => div.remove());
+        document.getElementById('ftP2Lignes').appendChild(div);
+    }
+    document.getElementById('ftP2Ajouter').addEventListener('click', ajouterP2);
+    document.getElementById('ftPasseeAjouter').addEventListener('click', () => {
+        document.getElementById('ftPasseeBloc').classList.remove('d-none');
+        document.getElementById('ftPasseeFait').classList.add('d-none');
+    });
+    document.getElementById('ftP2Enregistrer').addEventListener('click', async function () {
+        const cultures = [...document.querySelectorAll('#ftP2Lignes .ft-ligne')].map(l => {
+            const o = opt(l.querySelector('.p2-cle').value);
+            if (!o) return null;
+            const couts = {};
+            l.querySelectorAll('.p2-poste').forEach(i => { if (parseFloat(i.value) > 0) couts[i.dataset.poste] = i.value; });
+            return {
+                cle: o.cle, [o.animal ? 'effectif' : 'surface']: l.querySelector('.p2-taille').value,
+                irrigue: o.animal ? null : l.querySelector('.p2-irrigue').checked,
+                debut: l.querySelector('.p2-debut').value, date: l.querySelector('.p2-date').value,
+                quantite: l.querySelector('.p2-quantite').value, prixVente: l.querySelector('.p2-prix').value,
+                coutReel: l.querySelector('.p2-cout').value, couts, canal: l.querySelector('.p2-canal').value,
+                resultat: l.querySelector('.p2-resultat').value, remarque: l.querySelector('.p2-remarque').value,
+            };
+        }).filter(Boolean);
+        this.disabled = true;
+        try {
+            const r = await api('/api/terrain-actif/questionnaire/2', { method: 'POST', body: { cultures, aucune: document.getElementById('ftP2Aucune').checked } });
+            toast(r.message);
+            document.getElementById('ftP2Lignes').innerHTML = '';
+            await charger();
+            document.dispatchEvent(new CustomEvent('pg:terrain-modifie', { detail: { recalcul: true } }));
+            if (q.partie1 && q.partie2 && !q.aDeclarer.length && window.bootstrap) bootstrap.Modal.getOrCreateInstance(modal).hide();
+        } catch (e) { toast(e.message, 'warning'); }
+        this.disabled = false;
+    });
+
+    // ----- Mes résultats : cultures de cette saison terminées -----
+    function renderSaison() {
+        const box = document.getElementById('ftSaison');
+        const liste = q.aDeclarer || [];
+        box.classList.toggle('d-none', !liste.length);
+        const nb = document.getElementById('ftNbADeclarer');
+        nb.textContent = liste.length;
+        nb.classList.toggle('d-none', !liste.length);
+        const taille = c => c.animal ? `${c.effectif ?? '—'} ${esc(PGRobot.t(opt(c.cle)?.uniteTaille || ''))}` : `${formatNumber(c.surface)} {{ 'ha'|trans|e('js') }}`;
+        document.getElementById('ftSaisonListe').innerHTML = liste.map(c => `<div class="ft-ligne d-flex flex-wrap justify-content-between align-items-center gap-2">
+            <div><strong>${esc(PGRobot.t(c.culture))}</strong> · ${taille(c)} · <span class="text-muted">${formatDate(c.debut)} → ${formatDate(c.fin)}</span></div>
+            <button type="button" class="btn btn-success btn-sm" data-recolte="${c.id}"><i class="fas fa-check me-1"></i>{{ 'Déclarer le résultat'|trans|e('js') }}</button>
+        </div>`).join('');
+    }
+    document.getElementById('ftSaisonListe').addEventListener('click', e => {
+        const r = e.target.closest('[data-recolte]');
+        if (!r) return;
+        const c = q.aDeclarer.find(x => x.id == r.dataset.recolte);
+        document.getElementById('ftRecolteId').value = c.id;
+        document.getElementById('ftRecolteNom').textContent = PGRobot.t(c.culture);
+        modal.querySelector('.ft-u').textContent = c.animal ? PGRobot.t(c.unite) : PGRobot.t('t');
+        modal.querySelector('.ft-up').textContent = c.animal ? PGRobot.t(singulier(c.unite)) : PGRobot.t('kg');
+        document.getElementById('ftDateRecolte').value = c.fin && c.fin < aujourdhui() ? c.fin : aujourdhui();
+        document.getElementById('ftRecolte').classList.remove('d-none');
+        document.getElementById('ftQuantite').focus();
+    });
+    document.getElementById('ftRecolteAnnuler').addEventListener('click', () => document.getElementById('ftRecolte').classList.add('d-none'));
+    document.getElementById('ftRecolte').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        try {
+            const res = await api(`/api/cultivations/${document.getElementById('ftRecolteId').value}/recolte`, { method: 'POST', body: {
+                quantite: document.getElementById('ftQuantite').value, prixVente: document.getElementById('ftPrix').value,
+                coutReel: document.getElementById('ftCout').value, date: document.getElementById('ftDateRecolte').value,
+                resultat: document.getElementById('ftResultat').value, canal: document.getElementById('ftCanal').value,
+                remarque: document.getElementById('ftRemarque').value,
+            } });
+            toast(res.message);
+            this.reset();
+            this.classList.add('d-none');
+            await charger();
+            document.dispatchEvent(new CustomEvent('pg:terrain-modifie'));
+        } catch (err) { toast(err.message + (err.errors ? '\n' + Object.values(err.errors).join('\n') : ''), 'danger'); }
+    });
+
+    modal.addEventListener('show.bs.modal', () => { if (!q) charger(); });
+
+    // Ouverture automatique sur l'accueil tant que la fenêtre n'est pas remplie (une fois par visite)
+    if (window.PG_QUESTIONNAIRE_AUTO) {
+        charger().then(r => {
+            // s'ouvre tant que la saison n'est pas remplie, ou quand une culture de cette saison est terminée
+            if (!r || (r.partie1 && r.partie2 && !r.aDeclarer.length)) return;
+            const cle = r.libelleCampagne + '|' + r.aDeclarer.map(c => c.id).join(',');
+            let deja = false;
+            try { deja = sessionStorage.getItem('pg-questionnaire-' + r.terrain.id) === cle; sessionStorage.setItem('pg-questionnaire-' + r.terrain.id, cle); } catch (e) {}
+            if (deja) return;
+            onglet(r.partie1 ? 2 : 1);
+            ouvrir();
+        });
+    }
+    window.PG_ouvrirFormulaire = n => { (q ? Promise.resolve(q) : charger()).then(() => { onglet(n || 1); ouvrir(); }); };
+});
+</script>

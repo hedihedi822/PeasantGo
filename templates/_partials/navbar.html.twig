@@ -1,0 +1,150 @@
+{# Barre de navigation commune. Variables : fixed (bool), toggle (bool : bouton menu latéral) #}
+{{ include('_partials/traductions_js.html.twig') }}
+<nav class="navbar navbar-expand-lg navbar-light{{ fixed|default(true) ? ' fixed-top' : '' }}">
+    <div class="container-fluid">
+        {% if toggle|default(false) %}
+            <button type="button" class="menu-toggle border-0 bg-transparent me-3" aria-label="Afficher le menu">
+                <i class="fas fa-bars"></i>
+            </button>
+        {% endif %}
+        <a class="navbar-brand" href="{{ app.user ? path('app_home_user') : path('app_home_no') }}">
+            <img src="/Images/logo.png" alt="Logo PeasantGo.AI" height="50">
+            <span>PeasantGo.AI</span>
+        </a>
+        <div class="ms-auto d-flex align-items-center">
+            {% if app.user %}
+                <div class="dropdown me-3" id="pg-notif">
+                    <button class="btn btn-link position-relative p-1 text-success" type="button" data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false" aria-label="Notifications">
+                        <i class="fas fa-bell fa-lg"></i>
+                        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger d-none" id="pg-notif-count">0</span>
+                    </button>
+                    <div class="dropdown-menu dropdown-menu-end p-0 shadow" style="width: 360px; max-width: 92vw;">
+                        <div class="d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
+                            <strong>{{ 'Notifications'|trans }}</strong>
+                            <button type="button" class="btn btn-sm btn-link text-decoration-none p-0" id="pg-notif-all">{{ 'Tout marquer comme lu'|trans }}</button>
+                        </div>
+                        <div id="pg-notif-list" style="max-height: 420px; overflow-y: auto;">
+                            <div class="p-3 text-muted small text-center">{{ 'Chargement…'|trans }}</div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            <div class="dropdown me-2">
+                <button class="btn btn-link text-success p-1 text-decoration-none" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="{{ 'Langue'|trans }}">
+                    <i class="fas fa-globe fa-lg"></i> <span class="small fw-semibold">{{ app.request.locale|upper }}</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{{ app.request.locale == 'fr' ? ' active' }}" href="{{ path('app_langue', {code: 'fr'}) }}">Français</a></li>
+                    <li><a class="dropdown-item{{ app.request.locale == 'ar' ? ' active' }}" href="{{ path('app_langue', {code: 'ar'}) }}" lang="ar">العربية</a></li>
+                    <li><a class="dropdown-item{{ app.request.locale == 'en' ? ' active' }}" href="{{ path('app_langue', {code: 'en'}) }}" lang="en">English</a></li>
+                </ul>
+            </div>
+            {% set terrainActif = app.user ? terrain_actif() : null %}
+            <div class="dropdown">
+                <button class="bg-transparent border-0 p-0 d-flex align-items-center text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Menu du compte">
+                    {% if app.user %}
+                        <span class="d-none d-md-block me-2 lh-sm text-end">
+                            {% if terrainActif or not app.user.formateur %}<span class="d-block fw-semibold small" style="color: var(--primary-color)"><i class="fas fa-map-marker-alt me-1"></i>{{ terrainActif ? terrainActif.nom : ('Aucun terrain'|trans) }}</span>{% endif %}
+                            <span class="d-block small text-muted">{{ app.user.nomAffiche }}</span>
+                        </span>
+                    {% endif %}
+                    <img src="{{ app.user and app.user.avatar ? app.user.avatar : '/Images/avatar-defaut.jpeg' }}" alt="Profil" class="rounded-circle user-avatar" width="40" height="40" style="object-fit:cover">
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    {% if app.user %}
+                        <li class="px-3 py-2 d-md-none small">
+                            <strong>{{ terrainActif ? terrainActif.nom : ('Aucun terrain'|trans) }}</strong><br><span class="text-muted">{{ app.user.nomAffiche }}</span>
+                        </li>
+                        {% if is_granted('ROLE_ADMIN') %}
+                            <li><a class="dropdown-item" href="{{ path('app_admin') }}"><i class="fas fa-tools me-2"></i>{{ 'Panneau admin'|trans }}</a></li>
+                            <li><hr class="dropdown-divider"></li>
+                        {% endif %}
+                        {% if terrainActif %}
+                            <li><button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#formulaireTerrainModal"><i class="fas fa-clipboard-list me-2"></i>{{ 'Formulaire du terrain'|trans }}</button></li>
+                        {% endif %}
+                        <li><a class="dropdown-item" href="{{ path('app_choix_terrain') }}"><i class="fas fa-exchange-alt me-2"></i>{{ 'Changer de terrain'|trans }}</a></li>
+                        {% if app.user.formateur %}<li><a class="dropdown-item" href="{{ path('app_espace_formateur') }}"><i class="fas fa-chalkboard-teacher me-2"></i>{{ 'Mon espace formateur'|trans }}</a></li>{% endif %}
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item text-danger" href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt me-2"></i>{{ 'Déconnexion'|trans }}</a></li>
+                    {% else %}
+                        <li><a class="dropdown-item" href="{{ path('app_login') }}"><i class="fas fa-sign-in-alt me-2"></i>{{ 'Connectez-vous'|trans }}</a></li>
+                        <li><a class="dropdown-item" href="{{ path('app_sign_up') }}"><i class="fas fa-user-plus me-2"></i>{{ 'Créer un compte'|trans }}</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</nav>
+
+{% if app.user and terrainActif %}
+    {{ include('_partials/formulaire_modal.html.twig') }}
+{% endif %}
+{% if app.user %}
+<script>
+/* Cloche des notifications : rafraîchie toutes les 60 s.
+   Si l'utilisateur a activé « Notifications push » (Paramètres) et autorisé le navigateur,
+   une notification système s'affiche aussi pour chaque nouveauté pendant que le site est ouvert. */
+document.addEventListener('DOMContentLoaded', function () {
+    if (!window.PG) return;
+    const PUSH = {{ app.user.preferences.pushNotifications ? 'true' : 'false' }};
+    const list = document.getElementById('pg-notif-list');
+    const count = document.getElementById('pg-notif-count');
+    const icons = { statistiques: 'fa-chart-line text-success', annonce: 'fa-bullhorn text-warning', compte: 'fa-user text-primary' };
+    let dernierId = null;
+    try { dernierId = parseInt(localStorage.getItem('pg_notif_last') || '0', 10); } catch (e) { dernierId = 0; }
+
+    function quand(d) {
+        const diff = (Date.now() - new Date(d.replace(' ', 'T')).getTime()) / 60000;
+        if (diff < 1) return "à l'instant";
+        if (diff < 60) return `{{ 'il y a'|trans|e('js') }} ${Math.round(diff)} {{ 'min'|trans|e('js') }}`;
+        if (diff < 1440) return `{{ 'il y a'|trans|e('js') }} ${Math.round(diff / 60)} {{ 'h'|trans|e('js') }}`;
+        return PG.formatDate(d.slice(0, 10));
+    }
+
+    function render(res) {
+        count.textContent = res.nonLues > 99 ? '99+' : res.nonLues;
+        count.classList.toggle('d-none', res.nonLues === 0);
+        list.innerHTML = res.items.length ? res.items.map(n => `
+            <a href="${PG.esc(n.lien || '#')}" class="d-block px-3 py-2 border-bottom text-decoration-none text-body pg-notif-item ${n.lue ? '' : 'bg-light'}" data-id="${n.id}">
+                <div class="d-flex">
+                    <i class="fas ${icons[n.type] || 'fa-bell'} me-2 mt-1"></i>
+                    <div class="flex-grow-1">
+                        <div class="fw-semibold small">${n.lue ? '' : '<span class="badge bg-danger me-1">{{ 'Nouveau'|trans|e('js') }}</span>'}${PG.esc(n.titre)}</div>
+                        <div class="small text-muted" style="white-space: pre-line">${PG.esc(n.message)}</div>
+                        <div class="small text-muted mt-1"><i class="far fa-clock me-1"></i>${quand(n.date)}</div>
+                    </div>
+                </div>
+            </a>`).join('') : '<div class="p-3 text-muted small text-center">{{ 'Aucune notification pour le moment.'|trans|e('js') }}</div>';
+
+        const nouvelles = res.items.filter(n => !n.lue && n.id > dernierId);
+        if (nouvelles.length && PUSH && 'Notification' in window && Notification.permission === 'granted') {
+            nouvelles.slice(0, 3).forEach(n => new Notification(n.titre, { body: n.message.slice(0, 180), icon: '/Images/logo.png', tag: 'pg-' + n.id }));
+        }
+        if (res.items.length) {
+            dernierId = Math.max(dernierId, ...res.items.map(n => n.id));
+            try { localStorage.setItem('pg_notif_last', String(dernierId)); } catch (e) {}
+        }
+    }
+
+    async function charger() {
+        try { render(await PG.api('/api/notifications')); } catch (e) { /* silencieux */ }
+    }
+
+    list.addEventListener('click', async e => {
+        const a = e.target.closest('.pg-notif-item');
+        if (!a) return;
+        if (a.classList.contains('bg-light')) {
+            e.preventDefault();
+            try { await PG.api(`/api/notifications/${a.dataset.id}/lire`, { method: 'POST' }); } catch (err) {}
+            if (a.getAttribute('href') !== '#') window.location.href = a.getAttribute('href'); else charger();
+        }
+    });
+    document.getElementById('pg-notif-all').addEventListener('click', async () => {
+        try { await PG.api('/api/notifications/lire', { method: 'POST' }); charger(); } catch (e) { PG.toast(e.message, 'danger'); }
+    });
+
+    charger();
+    setInterval(charger, 60000);
+});
+</script>
+{% endif %}

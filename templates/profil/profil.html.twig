@@ -1,0 +1,927 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mon Compte - Gestion du Profil</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap{{ app.request.locale == 'ar' ? '.rtl' }}.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #2c7d4b;
+            --secondary-color: #f8f9fa;
+            --accent-color: #e9ecef;
+            --text-color: #343a40;
+            --sidebar-width: 250px;
+            --navbar-height: 68px;
+            --border-radius: 8px;
+            --box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text-color);
+            background-color: #f5f7f9;
+            margin: 0;
+            padding-top: var(--navbar-height);
+            display: flex;
+            justify-content: center;
+        }
+
+        .page-container {
+            background-color: white;
+            width: 210mm;
+            min-height: 297mm;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20mm;
+            box-sizing: border-box;
+        }
+
+        .navbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background-color: white !important;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            height: var(--navbar-height);
+            padding: 0.5rem 1.5rem;
+            z-index: 1030;
+        }
+
+        .navbar-brand {
+            font-weight: 600;
+            color: var(--primary-color);
+            display: flex;
+            align-items: center;
+        }
+
+        .navbar-brand img {
+            margin-right: 10px;
+        }
+
+        .user-avatar {
+            cursor: pointer;
+            border: 2px solid var(--primary-color);
+            padding: 2px;
+            transition: all 0.2s;
+        }
+
+        .user-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .main-content {
+            padding: 1.5rem;
+        }
+
+        .card {
+            border: none;
+            border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow);
+            margin-bottom: 2rem;
+        }
+
+        .section-title {
+            color: var(--primary-color);
+            font-weight: 600;
+            margin-bottom: 1rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 2px solid var(--primary-color);
+        }
+
+        .filter-row {
+            background-color: var(--secondary-color);
+            padding: 1rem;
+            border-radius: var(--border-radius);
+            margin-bottom: 1.5rem;
+        }
+
+        .form-control, .form-select {
+            border-radius: var(--border-radius);
+            border: 1px solid var(--accent-color);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s ease;
+        }
+
+        .form-control:focus, .form-select:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.25rem rgba(44, 125, 75, 0.25);
+        }
+
+        .form-control[readonly] {
+            background-color: #e9ecef;
+            opacity: 1;
+        }
+
+        .btn {
+            border-radius: var(--border-radius);
+            font-weight: 500;
+            padding: 0.5rem 1.5rem;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+        }
+
+        .btn-primary:hover {
+            background-color: #236b3c;
+            transform: translateY(-2px);
+        }
+
+        .profile-header {
+            background: linear-gradient(135deg, var(--primary-color), #236b3c);
+            color: white;
+            padding: 2rem 2rem 1rem 2rem;
+            text-align: center;
+            position: relative;
+            margin-top: 2rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: 2px solid var(--primary-color);
+            margin: 0 auto 1rem;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+            padding: 2px;
+            transition: all 0.2s;
+            cursor: pointer;
+        }
+
+        .profile-avatar:hover {
+            transform: scale(1.05);
+        }
+
+        .profile-avatar i {
+            color: var(--primary-color);
+        }
+
+        .nav-tabs {
+            background: white;
+            border-bottom: 2px solid var(--accent-color);
+        }
+
+        .nav-tabs .nav-link {
+            border: none;
+            color: var(--text-color);
+            font-weight: 500;
+            padding: 1rem 1.5rem;
+            margin: 0;
+            border-bottom: 3px solid transparent;
+            transition: all 0.3s ease;
+        }
+
+        .nav-tabs .nav-link.active {
+            color: var(--primary-color);
+            background: white;
+            border-bottom-color: var(--primary-color);
+        }
+
+        .nav-tabs .nav-link:hover {
+            border-bottom-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .tab-content {
+            padding: 2rem;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--accent-color);
+        }
+
+        .settings-item:last-child {
+            border-bottom: none;
+        }
+
+        .alert {
+            border-radius: var(--border-radius);
+            border: none;
+        }
+
+        .security-item {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .danger-zone {
+            border: 2px solid var(--danger-color);
+            border-radius: var(--border-radius);
+            background: linear-gradient(135deg, #fef2f2, #fee2e2);
+        }
+
+        .contact-card {
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .legal-item {
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-left: 4px solid var(--primary-color);
+        }
+
+        #companyFields {
+            margin-top: 1rem;
+            padding: 1rem;
+            background-color: var(--secondary-color);
+            border-radius: var(--border-radius);
+        }
+
+        /* Style pour le bouton de retour */
+        .btn-back {
+            background: transparent;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+            margin-bottom: 1rem;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            position: absolute;
+            top: 1rem;
+            left: 1rem;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.1);
+            transform: translateY(-2px);
+        }
+    </style>
+
+    <style>
+        .profile-avatar img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; }
+        .profile-avatar { cursor: pointer; overflow: hidden; }
+        .avatar-initiales { font-weight: 700; color: var(--primary-color); }
+        .field-error { color: #dc3545; font-size: .85rem; min-height: 1rem; }
+        .legal-item .btn-del { opacity: .55; }
+        .legal-item:hover .btn-del { opacity: 1; }
+        body.pg-dark { background: #1e2522; color: #e4e9e6; }
+        body.pg-dark .card, body.pg-dark .navbar, body.pg-dark .nav-tabs .nav-link, body.pg-dark .modal-content { background: #26302c !important; color: #e4e9e6; border-color: #3a4641; }
+        body.pg-dark .form-control, body.pg-dark .form-select { background: #1e2522; color: #e4e9e6; border-color: #3a4641; }
+        body.pg-dark .text-muted { color: #a9b5af !important; }
+        #terrainMap { height: 460px; border-radius: 8px; }
+        .sat-zone { border-top: 1px dashed #cfe3d6; margin-top: 1rem; padding-top: 1rem; }
+        .proba-bar { height: 8px; border-radius: 4px; background: #e9ecef; overflow: hidden; }
+        .proba-bar > div { height: 100%; background: var(--primary-color); }
+        .sat-thumb { width: 92px; height: 92px; object-fit: cover; border-radius: 6px; border: 1px solid #ddd; }
+        .ndvi-chart text { font-size: 10px; fill: #6c757d; }
+    </style>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+{% set societe = user.typeCompte == 'societe' %}
+{% set prefs = user.preferences %}
+<body class="{{ prefs.darkMode ? 'pg-dark' }}">
+    {{ include('_partials/navbar.html.twig', {fixed: false}) }}
+
+    <div class="page-container">
+        <main class="main-content">
+            <div class="container-fluid">
+                <div class="main-container">
+                    {{ include('_partials/flash.html.twig') }}
+                    <div class="profile-header">
+                        <a href="{{ path('app_home_user') }}" class="btn btn-back"><i class="fas fa-arrow-left me-2"></i>Retour</a>
+                        <div class="profile-avatar" id="headerAvatar" onclick="document.getElementById('avatarUpload').click()" title="Changer la photo">
+                            {% if user.avatar %}<img src="{{ user.avatar }}" alt="Photo de profil">{% else %}<span class="avatar-initiales">{{ user.initiales }}</span>{% endif %}
+                        </div>
+                        <input type="file" id="avatarUpload" style="display: none" accept="image/jpeg,image/png,image/webp,image/gif">
+                        <h2 class="mb-2" id="profileName">{{ user.nomAffiche }}</h2>
+                        <div class="profile-info">
+                            <p class="mb-2 opacity-75" id="profileEmail">{{ user.email }}</p>
+                            <p class="mb-0 opacity-75"><small>{{ societe ? 'Compte société' : (user.typeCompte == 'admin' ? 'Équipe PeasantGo' : 'Compte personnel') }} · Membre depuis {{ user.createdAt|date('m/Y') }}</small></p>
+                        </div>
+                    </div>
+
+                    <ul class="nav nav-tabs" id="accountTabs" role="tablist">
+                        {% for id, tab in {profile: ['fa-user', 'Profil'], agricultural: ['fa-tractor', 'Profil Agricole'], security: ['fa-shield-alt', 'Sécurité'], settings: ['fa-cog', 'Paramètres'], contact: ['fa-envelope', 'Contact']} %}
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link{{ onglet == id ? ' active' }}" id="{{ id }}-tab" data-bs-toggle="tab" data-bs-target="#{{ id }}" type="button" role="tab"><i class="fas {{ tab[0] }} me-2"></i>{{ tab[1]|trans }}</button>
+                            </li>
+                        {% endfor %}
+                    </ul>
+
+                    <div class="tab-content" id="accountTabsContent">
+                        {# ---------------- Profil ---------------- #}
+                        <div class="tab-pane fade{{ onglet == 'profile' ? ' show active' }}" id="profile" role="tabpanel">
+                            <div class="row">
+                                <div class="col-lg-8">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-edit me-2"></i>Modifier mes informations</h5></div>
+                                        <div class="card-body">
+                                            <form id="profileForm" novalidate>
+                                                {% if societe %}
+                                                    <div class="mb-3">
+                                                        <label for="nomSociete" class="form-label">Nom de la société</label>
+                                                        <input type="text" class="form-control" id="nomSociete" name="nomSociete" value="{{ user.nomSociete }}" maxlength="35" required>
+                                                        <div class="field-error" id="nomSocieteError"></div>
+                                                    </div>
+                                                {% else %}
+                                                    <div class="row">
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="prenom" class="form-label">Prénom</label>
+                                                            <input type="text" class="form-control" id="prenom" name="prenom" value="{{ user.prenom }}" maxlength="100" required>
+                                                            <div class="field-error" id="prenomError"></div>
+                                                        </div>
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="nom" class="form-label">Nom</label>
+                                                            <input type="text" class="form-control" id="nom" name="nom" value="{{ user.nom }}" maxlength="100" required>
+                                                            <div class="field-error" id="nomError"></div>
+                                                        </div>
+                                                    </div>
+                                                {% endif %}
+                                                <div class="mb-3">
+                                                    <label for="email" class="form-label">Email</label>
+                                                    <input type="email" class="form-control" id="email" name="email" value="{{ user.email }}" required>
+                                                    <div class="field-error" id="emailError"></div>
+                                                </div>
+                                                <div class="row">
+                                                    <div class="col-md-6 mb-3">
+                                                        <label for="telephone" class="form-label">Téléphone</label>
+                                                        <input type="tel" class="form-control" id="telephone" name="telephone" value="{{ user.telephone }}">
+                                                        <div class="field-error" id="telephoneError"></div>
+                                                    </div>
+                                                    {% if not societe %}
+                                                        <div class="col-md-6 mb-3">
+                                                            <label for="dateNaissance" class="form-label">Date de naissance</label>
+                                                            <input type="date" class="form-control" id="dateNaissance" name="dateNaissance" value="{{ user.dateNaissance ? user.dateNaissance|date('Y-m-d') }}">
+                                                            <div class="field-error" id="dateNaissanceError"></div>
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="adresse" class="form-label">Adresse</label>
+                                                    <textarea class="form-control" id="adresse" name="adresse" rows="3" placeholder="Rue, ville, gouvernorat">{{ user.adresse }}</textarea>
+                                                </div>
+                                                {% if societe %}
+                                                    <div class="row">
+                                                        <div class="col-md-4 mb-3"><label class="form-label">Code fiscal</label><input type="text" class="form-control" value="{{ user.codeFiscal }}" readonly></div>
+                                                        <div class="col-md-4 mb-3"><label class="form-label">SIRET</label><input type="text" class="form-control" value="{{ user.numeroSiret }}" readonly></div>
+                                                        <div class="col-md-4 mb-3"><label class="form-label">Code société</label><input type="text" class="form-control" value="{{ user.codeSociete }}" readonly></div>
+                                                    </div>
+                                                {% elseif user.cin %}
+                                                    <div class="mb-3"><label class="form-label">CIN</label><input type="text" class="form-control" value="{{ '%08d'|format(user.cin) }}" readonly></div>
+                                                {% endif %}
+                                                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-2"></i>Enregistrer les modifications</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-camera me-2"></i>Photo de profil</h5></div>
+                                        <div class="card-body text-center">
+                                            <div class="profile-avatar mx-auto mb-3" id="cardAvatar" style="width: 100px; height: 100px; font-size: 2rem;" onclick="document.getElementById('avatarUpload').click()">
+                                                {% if user.avatar %}<img src="{{ user.avatar }}" alt="Photo de profil">{% else %}<span class="avatar-initiales">{{ user.initiales }}</span>{% endif %}
+                                            </div>
+                                            <button type="button" class="btn btn-outline-primary btn-sm" onclick="document.getElementById('avatarUpload').click()"><i class="fas fa-upload me-2"></i>Changer la photo</button>
+                                            <p class="small text-muted mt-2 mb-0">JPG, PNG, WEBP ou GIF – 2 Mo max.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ---------------- Profil agricole ---------------- #}
+                        <div class="tab-pane fade{{ onglet == 'agricultural' ? ' show active' }}" id="agricultural" role="tabpanel">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>Terrains</h5></div>
+                                        <div class="card-body">
+                                            <form id="addLandForm" novalidate>
+                                                <div class="row">
+                                                    <div class="col-md-7 mb-3">
+                                                        <label for="landLocation" class="form-label">Nom / localisation</label>
+                                                        <input type="text" class="form-control" id="landLocation" placeholder="Ex: Parcelle Nord, Béja" maxlength="120" required>
+                                                    </div>
+                                                    <div class="col-md-5 mb-3">
+                                                        <label for="landPostal" class="form-label">Code postal</label>
+                                                        <input type="text" class="form-control" id="landPostal" inputmode="numeric" maxlength="4" placeholder="Ex: 9000">
+                                                    </div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="landArea" class="form-label">Superficie (hectares)</label>
+                                                    <input type="number" class="form-control" id="landArea" step="any" min="0.01" placeholder="Ex: 2.5" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Ajouter un terrain</button>
+                                            </form>
+                                            <div id="landList" class="mt-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-tractor me-2"></i>Machines Agricoles</h5></div>
+                                        <div class="card-body">
+                                            <form id="addMachineForm" novalidate>
+                                                <div class="mb-3">
+                                                    <label for="machineType" class="form-label">Type</label>
+                                                    <input type="text" class="form-control" id="machineType" placeholder="Ex: Tracteur, moissonneuse..." maxlength="120" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="machineYear" class="form-label">Année</label>
+                                                    <input type="number" class="form-control" id="machineYear" min="1900" max="{{ 'now'|date('Y') + 1 }}" placeholder="Ex: 2018" required>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary"><i class="fas fa-plus me-2"></i>Ajouter une machine</button>
+                                            </form>
+                                            <div id="machineList" class="mt-4"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row mt-4">
+                                <div class="col-lg-12">
+                                    <div class="card">
+                                        <div class="card-header d-flex justify-content-between align-items-center">
+                                            <h5 class="mb-0"><i class="fas fa-industry me-2"></i>Fermes et Compteurs par Terrain</h5>
+                                        </div>
+                                        <div class="card-body"><div id="landDetails"></div></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ---------------- Sécurité ---------------- #}
+                        <div class="tab-pane fade{{ onglet == 'security' ? ' show active' }}" id="security" role="tabpanel">
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-key me-2"></i>Changer le mot de passe</h5></div>
+                                        <div class="card-body">
+                                            <form id="passwordForm" novalidate>
+                                                <div class="mb-3">
+                                                    <label for="currentPassword" class="form-label">Mot de passe actuel</label>
+                                                    <input type="password" class="form-control" id="currentPassword" autocomplete="current-password" required>
+                                                    <div class="field-error" id="currentPasswordError"></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="newPassword" class="form-label">Nouveau mot de passe</label>
+                                                    <input type="password" class="form-control" id="newPassword" autocomplete="new-password" required>
+                                                    <div class="form-text">8 caractères min., une majuscule, une minuscule, un chiffre et un caractère spécial.</div>
+                                                    <div class="field-error" id="newPasswordError"></div>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="confirmPassword" class="form-label">Confirmer le nouveau mot de passe</label>
+                                                    <input type="password" class="form-control" id="confirmPassword" autocomplete="new-password" required>
+                                                    <div class="field-error" id="confirmPasswordError"></div>
+                                                </div>
+                                                <button type="submit" class="btn btn-warning"><i class="fas fa-lock me-2"></i>Changer le mot de passe</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-6">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-shield-alt me-2"></i>Sécurité du compte</h5></div>
+                                        <div class="card-body">
+                                            <div class="security-item"><div class="d-flex align-items-center"><i class="fas fa-id-badge text-success me-3"></i><div><strong>Identifiant de connexion</strong><p class="mb-0 text-muted small">{{ societe ? 'Code société : ' ~ user.codeSociete : 'Email : ' ~ user.email }}</p></div></div></div>
+                                            <div class="security-item"><div class="d-flex align-items-center"><i class="fas fa-clock text-info me-3"></i><div><strong>Dernière connexion</strong><p class="mb-0 text-muted small">{{ user.lastLoginAt ? user.lastLoginAt|date('d/m/Y à H:i') : '—' }}</p></div></div></div>
+                                            <div class="security-item"><div class="d-flex align-items-center"><i class="fas fa-calendar-plus text-warning me-3"></i><div><strong>Compte créé le</strong><p class="mb-0 text-muted small">{{ user.createdAt|date('d/m/Y') }}</p></div></div></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            {% if user.typeCompte != 'admin' %}
+                                <div class="card danger-zone mt-4">
+                                    <div class="card-header bg-transparent"><h5 class="mb-0 text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Zone dangereuse</h5></div>
+                                    <div class="card-body">
+                                        <p class="text-muted">Cette action est irréversible. Une fois votre compte supprimé, toutes vos données (terrains, cultures, machines...) seront définitivement perdues.</p>
+                                        <button type="button" class="btn btn-danger" onclick="confirmDeleteAccount()"><i class="fas fa-trash me-2"></i>Supprimer définitivement mon compte</button>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        {# ---------------- Paramètres ---------------- #}
+                        <div class="tab-pane fade{{ onglet == 'settings' ? ' show active' }}" id="settings" role="tabpanel">
+                            <div class="card">
+                                <div class="card-header"><h5 class="mb-0"><i class="fas fa-cog me-2"></i>{{ 'Préférences'|trans }}</h5></div>
+                                <div class="card-body">
+                                    {% for key, info in {
+                                        emailNotifications: ['Informations par email', "Recevoir aussi par email les informations de l'application (nouvelles statistiques…)"],
+                                        alertesEmail: ['Alertes du robot par email', 'Meilleure culture qui change, marché qui se sature, gel ou chaleur prévus sur vos terrains'],
+                                        alertesSms: ['Alertes du robot par SMS', 'Les mêmes alertes par SMS au numéro de votre profil'],
+                                        pushNotifications: ['Notifications push', 'Recevoir des notifications sur votre navigateur'],
+                                        darkMode: ['Mode sombre', "Utiliser le thème sombre pour l'interface"],
+                                        newsletter: ['Newsletter', 'Recevoir la newsletter et les offres spéciales']
+                                    } %}
+                                        <div class="settings-item">
+                                            <div><strong>{{ info[0]|trans }}</strong><p class="mb-0 text-muted small">{{ info[1]|trans }}</p></div>
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input pref-switch" type="checkbox" id="{{ key }}" data-pref="{{ key }}"{{ (key == 'newsletter' ? user.newsletter : prefs[key]) ? ' checked' }}>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                    <div class="settings-item">
+                                        <div><strong>{{ 'Langue'|trans }}</strong><p class="mb-0 text-muted small">{{ "Langue d'affichage de l'interface. L'arabe s'affiche de droite à gauche."|trans }}</p></div>
+                                        <div>
+                                            <select class="form-select" id="langue" style="width: auto;">
+                                                {% for code, nom in {fr: 'Français', ar: 'العربية', en: 'English'} %}
+                                                    <option value="{{ code }}"{{ app.request.locale == code ? ' selected' }}>{{ nom }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {# ---------------- Contact ---------------- #}
+                        <div class="tab-pane fade{{ onglet == 'contact' ? ' show active' }}" id="contact" role="tabpanel">
+                            <div class="row">
+                                <div class="col-lg-8">
+                                    <div class="card">
+                                        <div class="card-header"><h5 class="mb-0"><i class="fas fa-envelope me-2"></i>Contacter l'administration</h5></div>
+                                        <div class="card-body">
+                                            <form id="contactForm" novalidate>
+                                                <div class="mb-3">
+                                                    <label for="subject" class="form-label">Sujet</label>
+                                                    <select class="form-select" id="subject" required>
+                                                        <option value="">Choisir un sujet</option>
+                                                        {% for k, v in sujets %}<option value="{{ k }}">{{ v }}</option>{% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="priority" class="form-label">Priorité</label>
+                                                    <select class="form-select" id="priority">
+                                                        {% for k, v in priorites %}<option value="{{ k }}"{{ k == 'medium' ? ' selected' }}>{{ v }}</option>{% endfor %}
+                                                    </select>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label for="message" class="form-label">Message</label>
+                                                    <textarea class="form-control" id="message" rows="6" maxlength="5000" placeholder="Décrivez votre demande en détail (10 caractères minimum)..." required></textarea>
+                                                </div>
+                                                <button type="submit" class="btn btn-primary"><i class="fas fa-paper-plane me-2"></i>Envoyer le message</button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-lg-4">
+                                    <div class="card contact-card">
+                                        <div class="card-body">
+                                            <h5><i class="fas fa-headset me-2"></i>Autres moyens de contact</h5>
+                                            <hr>
+                                            <div class="mb-3"><strong><i class="fas fa-phone me-2"></i>Téléphone</strong><p class="mb-0 text-muted">+216 70 000 000</p><small class="text-muted">Lun-Ven : 8h-17h</small></div>
+                                            <div class="mb-3"><strong><i class="fas fa-envelope me-2"></i>Email</strong><p class="mb-0 text-muted">support@peasantgo.tn</p></div>
+                                            <div class="mb-3"><strong><i class="fas fa-clock me-2"></i>Temps de réponse</strong><p class="mb-0 text-muted">Généralement sous 24h</p></div>
+                                        </div>
+                                    </div>
+                                    <div class="card mt-3">
+                                        <div class="card-body">
+                                            <h6><i class="fas fa-graduation-cap me-2"></i>Besoin d'aide rapidement ?</h6>
+                                            <p class="text-muted small">Consultez nos formations vidéo</p>
+                                            <a href="{{ path('app_formation_user') }}" class="btn btn-outline-primary btn-sm"><i class="fas fa-book me-2"></i>Formations</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal fade" id="deleteAccountModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header border-0">
+                    <h5 class="modal-title text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Supprimer définitivement le compte</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-danger"><strong>Attention !</strong> Cette action est irréversible.</div>
+                    <p>En supprimant votre compte, vous perdrez :</p>
+                    <ul>
+                        <li>Toutes vos données personnelles</li>
+                        <li>Vos terrains, fermes, compteurs et machines</li>
+                        <li>L'historique de vos cultures et vos favoris</li>
+                    </ul>
+                    <div class="mb-3">
+                        <label for="deletePassword" class="form-label">Mot de passe</label>
+                        <input type="password" class="form-control" id="deletePassword" autocomplete="current-password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmDelete" class="form-label">Pour confirmer, tapez <strong>"SUPPRIMER"</strong> ci-dessous :</label>
+                        <input type="text" class="form-control" id="confirmDelete" placeholder="SUPPRIMER">
+                    </div>
+                </div>
+                <div class="modal-footer border-0">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-danger" id="confirmDeleteBtn" disabled onclick="deleteAccount()"><i class="fas fa-trash me-2"></i>Supprimer définitivement</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="mapModal" tabindex="-1">
+        <div class="modal-dialog modal-xl modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-draw-polygon me-2"></i>Contour du terrain <span id="mapTerrainNom"></span></h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">Zoomez sur votre parcelle (vue satellite), cliquez sur <i class="fas fa-draw-polygon"></i> puis sur chaque coin du champ ; terminez en cliquant sur le premier point. <span id="mapSurface" class="fw-semibold"></span></p>
+                    <div class="d-flex gap-2 mb-2">
+                        <input type="search" id="mapSearch" class="form-control form-control-sm" placeholder="Aller à : délégation, ville… (ex : Testour, Béja)" style="max-width: 320px;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="mapSearchBtn"><i class="fas fa-search"></i></button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="mapLocate"><i class="fas fa-location-arrow me-1"></i>Ma position</button>
+                    </div>
+                    <div id="terrainMap"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-danger me-auto" id="mapClear">Effacer le contour</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="button" class="btn btn-success" id="mapSave"><i class="fas fa-save me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+    <script src="/js/app.js"></script>
+    <script src="/js/satellite.js"></script>
+    <script>
+        const { api, esc, toast, showFieldErrors, formatNumber } = window.PG;
+        let terrains = [];
+        let machines = [];
+
+        function clearErrors(form) { form.querySelectorAll('.field-error').forEach(e => e.textContent = ''); }
+        function val(id) { const el = document.getElementById(id); return el ? el.value.trim() : undefined; }
+
+        // ---------- Profil ----------
+        document.getElementById('profileForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            clearErrors(this);
+            const body = { email: val('email'), telephone: val('telephone'), adresse: val('adresse') };
+            ['prenom', 'nom', 'nomSociete', 'dateNaissance'].forEach(k => { if (document.getElementById(k)) body[k] = val(k); });
+            try {
+                const res = await api('/api/profil', { method: 'POST', body });
+                document.getElementById('profileName').textContent = res.nomAffiche;
+                document.getElementById('profileEmail').textContent = body.email;
+                toast(res.message);
+            } catch (err) {
+                showFieldErrors(err.errors);
+                toast(err.message, 'danger');
+            }
+        });
+
+        // ---------- Photo de profil ----------
+        document.getElementById('avatarUpload').addEventListener('change', async function () {
+            if (!this.files.length) return;
+            const fd = new FormData();
+            fd.append('avatar', this.files[0]);
+            try {
+                const res = await api('/api/profil/avatar', { method: 'POST', body: fd });
+                const img = `<img src="${esc(res.avatar)}" alt="Photo de profil">`;
+                document.getElementById('headerAvatar').innerHTML = img;
+                document.getElementById('cardAvatar').innerHTML = img;
+                document.querySelectorAll('.navbar .user-avatar').forEach(i => i.src = res.avatar);
+                toast(res.message);
+            } catch (err) {
+                toast(err.message, 'danger');
+            }
+            this.value = '';
+        });
+
+        // ---------- Terrains / fermes / compteurs ----------
+        async function chargerProfilAgricole() {
+            try {
+                const res = await api('/api/terrains');
+                terrains = res.terrains;
+                machines = res.machines;
+                renderLands();
+                renderMachines();
+            } catch (err) {
+                toast(err.message, 'danger');
+            }
+        }
+
+        document.getElementById('addLandForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            const nom = val('landLocation');
+            const surface = val('landArea');
+            if (!nom) { toast('Indiquez le nom ou la localisation du terrain.', 'warning'); return; }
+            if (!(parseFloat(surface) > 0)) { toast('La superficie doit être supérieure à 0.', 'warning'); return; }
+            try {
+                const res = await api('/api/terrains', { method: 'POST', body: { nom, localisation: nom, surface, codePostal: val('landPostal') } });
+                terrains.push(res.terrain);
+                renderLands();
+                this.reset();
+                toast('Terrain ajouté avec succès !');
+            } catch (err) {
+                toast(err.message, 'danger');
+            }
+        });
+
+        function remplacerTerrain(t) {
+            terrains = terrains.map(x => x.id === t.id ? t : x);
+            renderLands();
+        }
+
+        async function supprimerTerrain(id) {
+            const t = terrains.find(x => x.id === id);
+            if (!confirm(`Supprimer le terrain « ${t.nom} » avec ses fermes, compteurs et cultures ?`)) return;
+            try {
+                await api(`/api/terrains/${id}`, { method: 'DELETE' });
+                terrains = terrains.filter(x => x.id !== id);
+                renderLands();
+                toast('Terrain supprimé.');
+            } catch (err) { toast(err.message, 'danger'); }
+        }
+
+        async function supprimer(url, msg) {
+            if (!confirm('Confirmer la suppression ?')) return;
+            try {
+                const res = await api(url, { method: 'DELETE' });
+                if (res.terrain) remplacerTerrain(res.terrain);
+                toast(msg);
+            } catch (err) { toast(err.message, 'danger'); }
+        }
+
+        function item(icon, titre, sousTitre, onDelete) {
+            return `<div class="legal-item d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center"><i class="fas ${icon} text-success me-3"></i><div><strong>${esc(titre)}</strong><p class="mb-0 text-muted small">${sousTitre}</p></div></div>
+                ${onDelete ? `<button type="button" class="btn btn-sm btn-outline-danger btn-del" onclick="${onDelete}" title="Supprimer"><i class="fas fa-trash"></i></button>` : ''}
+            </div>`;
+        }
+
+        function renderLands() {
+            document.getElementById('landList').innerHTML = terrains.length
+                ? terrains.map(t => item('fa-map-marker-alt', t.nom, `Superficie : ${formatNumber(t.surface)} ha · cultivée : ${formatNumber(t.surfaceUtilisee)} ha${t.codePostal ? ' · CP ' + t.codePostal : ''}`, `supprimerTerrain(${t.id})`)).join('')
+                : '<p class="text-muted small mb-0">Aucun terrain enregistré.</p>';
+
+            document.getElementById('landDetails').innerHTML = terrains.length ? terrains.map(t => `
+                <div class="card mb-4">
+                    <div class="card-header"><h5 class="mb-0"><i class="fas fa-map-marker-alt me-2"></i>${esc(t.nom)}</h5></div>
+                    <div class="card-body">
+                        <p class="mb-3">Superficie : ${formatNumber(t.surface)} hectares</p>
+                        <div class="row">
+                            <div class="col-md-6 mb-4">
+                                <h6><i class="fas fa-industry me-2"></i>Fermes</h6>
+                                ${t.fermes.map(f => item('fa-industry', f.localisation, 'Type : ' + esc(f.type), `supprimer('/api/fermes/${f.id}', 'Ferme supprimée.')`)).join('') || '<p class="text-muted small">Aucune ferme.</p>'}
+                                <form class="addFarmForm mt-3" data-terrain="${t.id}" novalidate>
+                                    <div class="mb-2"><input type="text" class="form-control form-control-sm" name="localisation" placeholder="Localisation de la ferme" maxlength="255" required></div>
+                                    <div class="mb-2"><input type="text" class="form-control form-control-sm" name="type" placeholder="Type (élevage, serre, entrepôt...)" maxlength="120" required></div>
+                                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-plus me-2"></i>Ajouter une ferme</button>
+                                </form>
+                            </div>
+                            <div class="col-md-6">
+                                <h6><i class="fas fa-tachometer-alt me-2"></i>Compteurs</h6>
+                                ${t.compteurs.map(c => item('fa-tachometer-alt', c.type, 'Numéro : ' + esc(c.numero), `supprimer('/api/compteurs/${c.id}', 'Compteur supprimé.')`)).join('') || '<p class="text-muted small">Aucun compteur.</p>'}
+                                <form class="addMeterForm mt-3" data-terrain="${t.id}" novalidate>
+                                    <div class="mb-2"><input type="text" class="form-control form-control-sm" name="type" placeholder="Type (eau SONEDE, électricité STEG...)" maxlength="60" required></div>
+                                    <div class="mb-2"><input type="text" class="form-control form-control-sm" name="numero" placeholder="Numéro de compteur" maxlength="60" required></div>
+                                    <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-plus me-2"></i>Ajouter un compteur</button>
+                                </form>
+                            </div>
+                        </div>
+                        <div class="sat-zone" data-sat="${t.id}">
+                            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+                                <h6 class="mb-0"><i class="fas fa-satellite me-2"></i>Satellite &amp; reconnaissance de culture</h6>
+                                <div class="d-flex gap-2">
+                                    <button type="button" class="btn btn-sm btn-outline-success" onclick="ouvrirCarte(${t.id})"><i class="fas fa-draw-polygon me-1"></i>${t.geometrie ? 'Modifier le contour' : 'Dessiner le contour'}</button>
+                                    ${t.geometrie ? `<button type="button" class="btn btn-sm btn-success" onclick="actualiserSatellite(${t.id}, this)"><i class="fas fa-sync me-1"></i>Actualiser</button>` : ''}
+                                </div>
+                            </div>
+                            <div class="sat-content mt-3">${t.geometrie ? '<p class="text-muted small">Chargement des données satellites…</p>' : '<p class="text-muted small mb-0">Dessinez le contour du terrain sur la carte pour recevoir les images satellites (NDVI) et la reconnaissance automatique de la culture.</p>'}</div>
+                        </div>
+                    </div>
+                </div>`).join('') : '<p class="text-muted mb-0">Ajoutez d\'abord un terrain pour y rattacher des fermes et des compteurs.</p>';
+            terrains.filter(t => t.geometrie).forEach(t => chargerSatellite(t.id));
+        }
+
+        document.getElementById('landDetails').addEventListener('submit', async function (e) {
+            const form = e.target;
+            e.preventDefault();
+            const data = Object.fromEntries(new FormData(form));
+            if (Object.values(data).some(v => !String(v).trim())) { toast('Remplissez tous les champs.', 'warning'); return; }
+            const kind = form.classList.contains('addFarmForm') ? 'fermes' : 'compteurs';
+            try {
+                const res = await api(`/api/terrains/${form.dataset.terrain}/${kind}`, { method: 'POST', body: data });
+                remplacerTerrain(res.terrain);
+                toast(kind === 'fermes' ? 'Ferme ajoutée avec succès !' : 'Compteur ajouté avec succès !');
+            } catch (err) { toast(err.message, 'danger'); }
+        });
+
+        // ---------- Machines ----------
+        function renderMachines() {
+            document.getElementById('machineList').innerHTML = machines.length
+                ? machines.map(m => item('fa-tractor', m.type, 'Année : ' + m.annee, `supprimerMachine(${m.id})`)).join('')
+                : '<p class="text-muted small mb-0">Aucune machine enregistrée.</p>';
+        }
+        document.getElementById('addMachineForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                const res = await api('/api/machines', { method: 'POST', body: { type: val('machineType'), annee: val('machineYear') } });
+                machines.push(res.machine);
+                renderMachines();
+                this.reset();
+                toast('Machine ajoutée avec succès !');
+            } catch (err) { toast(err.message, 'danger'); }
+        });
+        async function supprimerMachine(id) {
+            if (!confirm('Supprimer cette machine ?')) return;
+            try {
+                await api(`/api/machines/${id}`, { method: 'DELETE' });
+                machines = machines.filter(m => m.id !== id);
+                renderMachines();
+                toast('Machine supprimée.');
+            } catch (err) { toast(err.message, 'danger'); }
+        }
+
+        // ---------- Mot de passe ----------
+        document.getElementById('passwordForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            clearErrors(this);
+            if (val('newPassword') !== val('confirmPassword')) {
+                document.getElementById('confirmPasswordError').textContent = 'Les mots de passe ne correspondent pas';
+                return;
+            }
+            try {
+                const res = await api('/api/profil/password', { method: 'POST', body: {
+                    currentPassword: document.getElementById('currentPassword').value,
+                    newPassword: document.getElementById('newPassword').value,
+                    confirmPassword: document.getElementById('confirmPassword').value,
+                } });
+                toast(res.message);
+                this.reset();
+            } catch (err) {
+                showFieldErrors(err.errors);
+                toast(err.message, 'danger');
+            }
+        });
+
+        // ---------- Paramètres (sauvegarde automatique) ----------
+        async function savePref(body) {
+            try {
+                const res = await api('/api/profil/preferences', { method: 'POST', body });
+                document.body.classList.toggle('pg-dark', !!res.preferences.darkMode);
+                toast(res.message);
+            } catch (err) { toast(err.message, 'danger'); }
+        }
+        document.querySelectorAll('.pref-switch').forEach(cb => cb.addEventListener('change', async function () {
+            if (this.dataset.pref === 'pushNotifications' && this.checked && 'Notification' in window && Notification.permission !== 'granted') {
+                const perm = await Notification.requestPermission();
+                if (perm !== 'granted') { this.checked = false; toast('Notifications refusées par le navigateur.', 'warning'); return; }
+            }
+            savePref({ [this.dataset.pref]: this.checked });
+        }));
+        document.getElementById('langue').addEventListener('change', function () { window.location = '{{ path('app_langue', {code: 'fr'}) }}'.replace(/fr$/, this.value); });
+
+        // ---------- Contact ----------
+        document.getElementById('contactForm').addEventListener('submit', async function (e) {
+            e.preventDefault();
+            try {
+                const res = await api('/api/contact', { method: 'POST', body: { sujet: val('subject'), priorite: val('priority'), message: val('message') } });
+                toast(res.message);
+                this.reset();
+            } catch (err) { toast(err.message, 'danger'); }
+        });
+
+        // ---------- Suppression du compte ----------
+        function confirmDeleteAccount() {
+            new bootstrap.Modal(document.getElementById('deleteAccountModal')).show();
+        }
+        document.getElementById('confirmDelete').addEventListener('input', function () {
+            document.getElementById('confirmDeleteBtn').disabled = this.value !== 'SUPPRIMER';
+        });
+        async function deleteAccount() {
+            try {
+                const res = await api('/api/profil', { method: 'DELETE', body: { confirmation: val('confirmDelete'), password: document.getElementById('deletePassword').value } });
+                toast('Votre compte a été supprimé.');
+                setTimeout(() => window.location.href = res.redirect || '/', 1200);
+            } catch (err) { toast(err.message, 'danger'); }
+        }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelector('.main-container').style.animation = 'slideIn 0.5s ease-out';
+            chargerProfilAgricole();
+        });
+    </script>
+</body>
+</html>

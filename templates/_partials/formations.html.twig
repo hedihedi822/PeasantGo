@@ -1,0 +1,370 @@
+{#
+    Liste des formations (entité Formation), paginée par KnpPaginator.
+    Variables : formations (pagination), q (recherche), verrouille (bool : visiteur non connecté)
+#}
+<style>
+    .prix-gratuite { background: #e6f4ea; color: #1e6b3a; }
+    .prix-payante { background: #fff3e0; color: #a35a00; }
+    .video-container.locked.payante { background: linear-gradient(135deg, #8a5a00, #c27c0e); }
+    .video-container.locked.payante .btn-login { color: #8a5a00; }
+    .badge-achetee { background: #1f5c37; color: #fff; }
+    .apercu-label { position: absolute; top: 8px; left: 8px; z-index: 3; background: rgba(194,124,14,.95); color: #fff; font-size: .75rem; font-weight: 600; padding: .2rem .55rem; border-radius: 6px; }
+    .apercu-fin { position: absolute; inset: 0; z-index: 20; display: flex; align-items: center; justify-content: center; text-align: center; padding: 1rem;
+        background: linear-gradient(135deg, rgba(138,90,0,.96), rgba(194,124,14,.96)); color: #fff; border-radius: 10px; }
+    .apercu-fin h4 { color: #fff; font-size: 1rem; font-weight: 700; margin-bottom: .6rem; }
+    .apercu-fin .btn-acheter, .btn-acheter { background: #fff; color: #8a5a00; font-weight: 700; border-radius: 8px; padding: .4rem 1rem; border: 0; }
+    .btn-acheter-doc { background: #c27c0e; color: #fff; font-weight: 600; border: 0; }
+    #apercuDocCorps canvas { display: block; max-width: 100%; margin: 0 auto 12px; box-shadow: 0 1px 6px rgba(0,0,0,.15); background: #fff; }
+    #apercuDocCorps .doc-texte { background: #fff; padding: 1.2rem 1.4rem; box-shadow: 0 1px 6px rgba(0,0,0,.12); line-height: 1.6; white-space: pre-line; }
+    #apercuDocCorps .doc-texte h5 { color: #1f5c37; margin-top: .8rem; }
+    #apercuDocCorps { user-select: none; -webkit-user-select: none; background: #f1f3f2; }
+    .apercu-doc-fin { text-align: center; padding: 1.2rem; border-radius: 10px; color: #fff; background: linear-gradient(135deg, #8a5a00, #c27c0e); }
+    .attente-paiement { background: #fff8e6; color: #8a5a00; border-radius: 8px; padding: .5rem .7rem; font-size: .85rem; }
+    .niveau-debutant { background: #e6f4ea; color: #1e6b3a; }
+    .niveau-intermediaire { background: #fff3e0; color: #a35a00; }
+    .niveau-avance { background: #fdecea; color: #a8231a; }
+    .video-container.locked { position: relative; min-height: 180px; border-radius: 10px; overflow: hidden;
+        background: linear-gradient(135deg, #1f5c37, #2c7d4b); }
+    .video-container.locked .lock-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+    .video-container.locked .lock-content, .video-container.locked .lock-content h4 { color: #fff; }
+    .video-container.locked .lock-content h4 { font-size: 1.05rem; font-weight: 700; margin-bottom: .8rem; }
+    .video-container.locked .btn-login { background: #fff; color: #1f5c37; font-weight: 600; border-radius: 8px; padding: .4rem 1rem; }
+    .video-container.locked .btn-login:hover { background: #eaf6ee; }
+</style>
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
+            <h4 class="section-title">{{ 'Formations'|trans }}</h4>
+            <a href="{{ path(app.user and app.user.formateur ? 'app_espace_formateur' : 'app_devenir_formateur') }}" class="btn btn-success" id="btnDevenirFormateur"><i class="fas fa-chalkboard-teacher me-1"></i>{{ (app.user and app.user.formateur ? 'Mon espace formateur' : 'Devenir formateur')|trans }}</a>
+        </div>
+
+        <div class="filter-row">
+            <form method="get" class="d-flex align-items-center" style="max-width: 460px;" role="search">
+                <input type="search" name="q" value="{{ q }}" class="form-control form-control-sm me-2" placeholder="{{ 'Rechercher (culture, type, mot-clé)...'|trans }}" style="flex: 2;" aria-label="Rechercher une formation">
+                <button type="submit" class="search-btn btn-sm" style="flex: 1;"><i class="fas fa-search me-1"></i> {{ 'Rechercher'|trans }}</button>
+                {% if q %}<a href="?" class="btn btn-sm btn-link">{{ 'Effacer'|trans }}</a>{% endif %}
+            </form>
+        </div>
+
+        {% if formations.totalItemCount == 0 %}
+            <div class="text-center text-muted py-5">
+                <i class="fas fa-video-slash fa-2x mb-3"></i>
+                <p class="mb-0">{{ q ? 'Aucune formation ne correspond à « ' ~ q ~ ' ».' : 'Aucune formation disponible pour le moment.' }}</p>
+            </div>
+        {% else %}
+            <p class="text-muted small mb-3">{{ formations.totalItemCount }} formation(s){{ q ? ' pour « ' ~ q ~ ' »' }}</p>
+        {% endif %}
+
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+            {% for f in formations %}
+                {% set achats = achats|default({}) %}
+                {% set statutAchat = achats[f.id] ?? null %}
+                {% set ouvert = not verrouille and f.estAccessiblePour(app.user, achats) %}
+                {% set apercuSeul = not verrouille and not ouvert %}
+                {% set srcVideo = f.payante ? path('app_formation_media', {id: f.id, type: 'video'}) : f.formationVideo %}
+                <div class="col">
+                    <div class="formation-card">
+                        <div class="formation-details">
+                            <h3 class="formation-title">{{ f.title ?: (f.sousType ~ ' – ' ~ f.categorie) }}</h3>
+                            <div class="mb-2">
+                                <span class="badge bg-success">{{ f.categorie }}</span>
+                                <span class="badge bg-light text-dark">{{ f.sousType }}</span>
+                                {% if f.auteur %}<span class="badge bg-success-subtle text-success-emphasis"><i class="fas fa-chalkboard-teacher me-1"></i>{{ f.auteur.nomAffiche }}</span>{% endif %}
+                                {% if statutAchat == 'payee' %}<span class="badge badge-achetee"><i class="fas fa-check me-1"></i>{{ 'Achetée'|trans }}</span>
+                                {% else %}<span class="badge {{ f.payante ? 'prix-payante' : 'prix-gratuite' }}"><i class="fas {{ f.payante ? 'fa-coins' : 'fa-gift' }} me-1"></i>{{ f.prixAffiche|trans }}</span>{% endif %}
+                                {% if f.difficulty %}<span class="badge niveau-{{ f.difficulty }}">{{ ({debutant: 'Débutant', intermediaire: 'Intermédiaire', avance: 'Avancé'}[f.difficulty] ?? f.difficulty)|trans }}</span>{% endif %}
+                            </div>
+
+                            <div class="description-container">
+                                {% if verrouille %}
+                                    <p class="formation-description">{{ f.descriptionExcerpt(130) }}</p>
+                                    <div class="locked-content-notice"><i class="fas fa-lock"></i> {{ 'Contenu réservé aux membres'|trans }}</div>
+                                {% else %}
+                                    <p class="formation-description" id="description-{{ f.id }}">{{ f.description|nl2br }}</p>
+                                    {% if f.description|length > 150 or '\n' in f.description %}
+                                        <button type="button" class="read-more-btn" data-description="description-{{ f.id }}">Lire la suite <i class="fas fa-chevron-down"></i></button>
+                                    {% endif %}
+                                {% endif %}
+                            </div>
+
+                            <div class="formation-meta">
+                                <div class="duration-indicator">
+                                    <i class="fas fa-clock"></i>
+                                    <span>{{ f.duration ? f.formattedDuration : '—' }}</span>
+                                </div>
+                                <div class="duration-indicator"><i class="fas fa-eye"></i><span class="views-{{ f.id }}">{{ f.views }}</span></div>
+                            </div>
+
+                            {% if verrouille %}
+                                <div class="video-container locked">
+                                    <div class="lock-overlay">
+                                        <div class="lock-content text-center">
+                                            <i class="fas fa-lock fa-3x mb-3"></i>
+                                            <h4>{{ 'Contenu réservé aux membres'|trans }}</h4>
+                                            <a href="{{ path('app_login') }}" class="btn btn-login"><i class="fas fa-sign-in-alt me-2"></i>{{ 'Connectez-vous'|trans }}</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elseif apercuSeul and f.hasVideo %}
+                                <div class="video-container">
+                                    <span class="apercu-label"><i class="fas fa-eye me-1"></i>{{ 'Aperçu gratuit'|trans }} · {{ (apercu * 100)|round }} %</span>
+                                    <div class="play-btn" data-video="video-{{ f.id }}"><i class="fas fa-play"></i></div>
+                                    <video id="video-{{ f.id }}" data-formation="{{ f.id }}" data-apercu="{{ apercu }}" controls controlsList="nodownload noplaybackrate" disablePictureInPicture preload="metadata"{% if f.posterPath %} poster="{{ f.posterPath }}"{% endif %} oncontextmenu="return false">
+                                        <source src="{{ srcVideo }}" type="video/mp4">
+                                    </video>
+                                    <div class="apercu-fin d-none" id="apercu-fin-{{ f.id }}">
+                                        <div>
+                                            <i class="fas fa-lock fa-2x mb-2"></i>
+                                            <h4>{{ 'Fin de l’aperçu. Achetez la formation pour voir la suite.'|trans }}</h4>
+                                            {% if statutAchat == 'en_attente' %}
+                                                <div class="small"><i class="fas fa-hourglass-half me-1"></i>{{ 'Paiement en cours de vérification.'|trans }}</div>
+                                            {% else %}
+                                                <button type="button" class="btn btn-acheter" data-acheter="{{ f.id }}" data-titre="{{ f.title }}" data-prix="{{ f.prixAffiche }}"><i class="fas fa-shopping-cart me-1"></i>{{ 'Acheter'|trans }} · {{ f.prixAffiche }}</button>
+                                            {% endif %}
+                                            <div><button type="button" class="btn btn-link btn-sm text-white mt-1" data-revoir="video-{{ f.id }}"><i class="fas fa-redo me-1"></i>{{ 'Revoir l’aperçu'|trans }}</button></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% elseif apercuSeul %}
+                                <div class="video-container locked payante">
+                                    <div class="lock-overlay"><div class="lock-content text-center">
+                                        <i class="fas fa-file-alt fa-3x mb-3"></i>
+                                        <h4>{{ 'Formation payante'|trans }} · {{ f.prixAffiche }}</h4>
+                                    </div></div>
+                                </div>
+                            {% elseif f.hasVideo %}
+                                <div class="video-container">
+                                    <div class="play-btn" data-video="video-{{ f.id }}"><i class="fas fa-play"></i></div>
+                                    <video id="video-{{ f.id }}" data-formation="{{ f.id }}" controls preload="metadata"{% if f.posterPath %} poster="{{ f.posterPath }}"{% endif %}>
+                                        <source src="{{ srcVideo }}" type="video/mp4">
+                                        Votre navigateur ne supporte pas la lecture de vidéos HTML5.
+                                    </video>
+                                    <button type="button" class="fullscreen-btn" data-video="video-{{ f.id }}"><i class="fas fa-expand"></i> Plein écran</button>
+                                </div>
+                            {% endif %}
+
+                            {% if ouvert and (f.hasPdf or f.hasWord) %}
+                                <div class="mt-2 d-flex gap-2">
+                                    {% if f.hasPdf %}<a class="btn btn-sm btn-outline-danger" href="{{ f.payante ? path('app_formation_media', {id: f.id, type: 'document'}) : f.formationPdf }}" target="_blank" rel="noopener"><i class="fas fa-file-pdf me-1"></i>PDF</a>{% endif %}
+                                    {% if f.hasWord %}<a class="btn btn-sm btn-outline-primary" href="{{ f.payante ? path('app_formation_media', {id: f.id, type: 'document'}) : f.formationWord }}" download><i class="fas fa-file-word me-1"></i>Word</a>{% endif %}
+                                </div>
+                            {% endif %}
+                            {% if apercuSeul %}
+                                <div class="mt-2">
+                                    {% if statutAchat == 'en_attente' %}
+                                        <div class="attente-paiement"><i class="fas fa-hourglass-half me-1"></i>{{ 'Paiement en cours de vérification : la formation s’ouvrira dès sa confirmation.'|trans }}</div>
+                                    {% else %}
+                                        {% if f.hasPdf or (f.hasWord and not (f.formationWord ends with '.doc')) %}
+                                            <button type="button" class="btn btn-sm btn-outline-secondary w-100 mb-2" data-apercu-doc="{{ f.id }}" data-format="{{ f.hasPdf ? 'pdf' : 'word' }}" data-titre="{{ f.title }}" data-prix="{{ f.prixAffiche }}">
+                                                <i class="fas {{ f.hasPdf ? 'fa-file-pdf text-danger' : 'fa-file-word text-primary' }} me-1"></i>{{ 'Aperçu du document'|trans }} · {{ (apercu * 100)|round }} %</button>
+                                        {% elseif f.hasWord %}<div class="small text-muted mb-1"><i class="fas fa-lock me-1"></i>{{ 'Document inclus après l’achat'|trans }} (Word)</div>{% endif %}
+                                        <button type="button" class="btn btn-sm btn-acheter-doc w-100" data-acheter="{{ f.id }}" data-titre="{{ f.title }}" data-prix="{{ f.prixAffiche }}"><i class="fas fa-shopping-cart me-1"></i>{{ 'Acheter la formation'|trans }} · {{ f.prixAffiche }}</button>
+                                        {% if statutAchat == 'refusee' %}<div class="small text-danger mt-1">{{ 'Paiement précédent non retrouvé : vous pouvez le déclarer à nouveau.'|trans }}</div>{% endif %}
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <div class="mt-4 d-flex justify-content-center">
+            {{ knp_pagination_render(formations) }}
+        </div>
+    </div>
+</div>
+
+{% if not verrouille %}
+<div class="modal fade" id="modalAchat" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <form id="formAchat" novalidate>
+      <div class="modal-header"><h5 class="modal-title"><i class="fas fa-shopping-cart me-2 text-warning"></i>{{ 'Acheter la formation'|trans }}</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+      <div class="modal-body">
+        <p class="mb-1 fw-semibold" id="achatTitre"></p>
+        <p class="mb-3">{{ 'Prix :'|trans }} <strong id="achatPrix"></strong></p>
+        <div class="alert alert-success small py-2"><i class="fas fa-infinity me-1"></i>{{ 'L’achat est lié à votre compte : la formation reste ouverte avec tous vos terrains.'|trans }}</div>
+        <div id="achatManuel">
+          <p class="small mb-2" id="achatCompte"></p>
+          <label class="form-label small mb-0" for="achatMoyen">{{ 'Moyen de paiement *'|trans }}</label>
+          <select id="achatMoyen" class="form-select mb-2"><option value="">{{ 'Choisir…'|trans }}</option></select>
+          <label class="form-label small mb-0" for="achatRef">{{ 'Référence du paiement *'|trans }}</label>
+          <input id="achatRef" class="form-control" maxlength="120" placeholder="{{ 'N° de transaction ou de reçu'|trans }}">
+          <div class="form-text">{{ 'L’équipe vérifie le paiement puis ouvre la formation ; vous recevez une notification.'|trans }}</div>
+        </div>
+      </div>
+      <div class="modal-footer"><button type="button" class="btn btn-light" data-bs-dismiss="modal">{{ 'Annuler'|trans }}</button><button type="submit" class="btn btn-warning fw-semibold" id="achatEnvoyer">{{ 'Confirmer'|trans }}</button></div>
+    </form>
+  </div></div>
+</div>
+<div class="modal fade" id="modalApercuDoc" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title"><i class="fas fa-eye me-2 text-warning"></i><span id="apercuDocTitre"></span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body" id="apercuDocCorps" oncontextmenu="return false"></div>
+    <div class="modal-footer justify-content-between">
+      <span class="small text-muted" id="apercuDocInfo"></span>
+      <button type="button" class="btn btn-warning fw-semibold" id="apercuDocAcheter"><i class="fas fa-shopping-cart me-1"></i>{{ 'Acheter'|trans }} · <span></span></button>
+    </div>
+  </div></div>
+</div>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.read-more-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const d = document.getElementById(this.dataset.description);
+            if (!d) return;
+            d.classList.toggle('expanded');
+            this.innerHTML = d.classList.contains('expanded') ? 'Voir moins <i class="fas fa-chevron-up"></i>' : 'Lire la suite <i class="fas fa-chevron-down"></i>';
+        });
+    });
+
+    document.querySelectorAll('.play-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const video = document.getElementById(this.dataset.video);
+            if (!video) return;
+            if (video.paused) {
+                video.play().catch(() => PG.toast('Erreur de lecture de la vidéo. Veuillez réessayer.', 'danger'));
+            } else {
+                video.pause();
+            }
+        });
+    });
+
+    document.querySelectorAll('.video-container video').forEach(video => {
+        const playBtn = video.closest('.video-container').querySelector('.play-btn');
+        let compte = false;
+        video.addEventListener('pause', () => { if (playBtn) playBtn.style.display = 'flex'; });
+        video.addEventListener('playing', () => {
+            if (playBtn) playBtn.style.display = 'none';
+            if (!compte && video.dataset.formation) {
+                compte = true;
+                PG.api(`/api/formations/${video.dataset.formation}/vue`, { method: 'POST' })
+                    .then(r => { const el = document.querySelector('.views-' + video.dataset.formation); if (el) el.textContent = r.views; })
+                    .catch(() => {});
+            }
+        });
+        video.addEventListener('error', () => {
+            if (playBtn) {
+                playBtn.innerHTML = '<i class="fas fa-exclamation-triangle"></i>';
+                playBtn.style.backgroundColor = 'rgba(255, 0, 0, 0.4)';
+                playBtn.title = 'Vidéo introuvable';
+            }
+        }, true);
+    });
+
+
+    // ---- Aperçu des formations payantes : la lecture s'arrête à 25 % de la vidéo
+    document.querySelectorAll('video[data-apercu]').forEach(video => {
+        const part = parseFloat(video.dataset.apercu) || 0.25;
+        const fin = document.getElementById('apercu-fin-' + video.dataset.formation);
+        const limite = () => (video.duration && isFinite(video.duration)) ? video.duration * part : Infinity;
+        const playBtn = video.closest('.video-container').querySelector('.play-btn');
+        const bloquer = () => { video.pause(); video.currentTime = Math.max(0, limite() - 0.05); if (fin) fin.classList.remove('d-none'); setTimeout(() => { if (playBtn) playBtn.style.display = 'none'; }, 0); };
+        video.addEventListener('timeupdate', () => { if (video.currentTime >= limite()) bloquer(); });
+        video.addEventListener('seeking', () => { if (video.currentTime > limite()) bloquer(); });
+        video.addEventListener('play', () => { if (video.currentTime >= limite() - 0.1) { bloquer(); } });
+    });
+    document.querySelectorAll('[data-revoir]').forEach(b => b.addEventListener('click', () => {
+        const v = document.getElementById(b.dataset.revoir);
+        v.currentTime = 0; document.getElementById('apercu-fin-' + v.dataset.formation)?.classList.add('d-none'); v.play().catch(() => {});
+    }));
+
+
+    // ---- Aperçu des documents : PDF = 25 % des pages dessinées dans le navigateur ; Word = 25 % du texte, lu par le serveur
+    const modalDocEl = document.getElementById('modalApercuDoc');
+    if (modalDocEl) {
+        const modalDoc = new bootstrap.Modal(modalDocEl);
+        const corps = document.getElementById('apercuDocCorps');
+        const info = document.getElementById('apercuDocInfo');
+        const btnAcheter = document.getElementById('apercuDocAcheter');
+        const part = {{ apercu|default(0.25) }};
+        const T = { chargement: '{{ 'Chargement de l’aperçu…'|trans|e('js') }}', fin: '{{ 'Fin de l’aperçu. Achetez la formation pour lire la suite.'|trans|e('js') }}',
+                    pages: '{{ 'page(s) affichée(s) sur'|trans|e('js') }}', paras: '{{ 'du document affiché'|trans|e('js') }}', reste: '{{ 'page(s) réservée(s) aux acheteurs'|trans|e('js') }}' };
+        const finHtml = (txt) => `<div class="apercu-doc-fin"><i class="fas fa-lock fa-2x mb-2"></i><div class="fw-bold">${T.fin}</div>${txt ? '<div class="small mt-1">' + txt + '</div>' : ''}</div>`;
+        const echap = (t) => t.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        let pdfjs = null;
+        document.querySelectorAll('[data-apercu-doc]').forEach(b => b.addEventListener('click', async () => {
+            const id = b.dataset.apercuDoc;
+            document.getElementById('apercuDocTitre').textContent = b.dataset.titre;
+            btnAcheter.querySelector('span').textContent = b.dataset.prix;
+            btnAcheter.dataset.cible = id;
+            corps.innerHTML = `<div class="text-center text-muted py-5"><div class="spinner-border spinner-border-sm me-2"></div>${T.chargement}</div>`;
+            info.textContent = '';
+            await new Promise(ok => { modalDocEl.addEventListener('shown.bs.modal', ok, { once: true }); modalDoc.show(); });
+            try {
+                if (b.dataset.format === 'word') {
+                    const r = await PG.api(`/api/formations/${id}/apercu-texte`);
+                    corps.innerHTML = '<div class="doc-texte">' + r.blocs.map(x => x.titre ? `<h5>${echap(x.texte)}</h5>` : `<p>${echap(x.texte)}</p>`).join('') + '</div><div class="mt-3">' + finHtml('') + '</div>';
+                    info.textContent = `${Math.round(r.montres * 100 / Math.max(1, r.total))} % ${T.paras}`;
+                } else {
+                    pdfjs = pdfjs || await import('/vendor/pdfjs/pdf.min.js');
+                    pdfjs.GlobalWorkerOptions.workerSrc = '/vendor/pdfjs/pdf.worker.min.js';
+                    const base = '/vendor/pdfjs/';
+                    const tache = pdfjs.getDocument({ url: `/formation/${id}/media/apercu`, disableAutoFetch: true,
+                        standardFontDataUrl: base + 'standard_fonts/', cMapUrl: base + 'cmaps/', cMapPacked: true, wasmUrl: base + 'wasm/', iccUrl: base + 'iccs/' });
+                    const doc = await tache.promise;
+                    const max = Math.max(1, Math.floor(doc.numPages * part));
+                    corps.innerHTML = '';
+                    const largeur = Math.max(300, Math.min(760, corps.clientWidth - 32));
+                    for (let n = 1; n <= max; n++) {
+                        const page = await doc.getPage(n);
+                        const v1 = page.getViewport({ scale: 1 });
+                        const vp = page.getViewport({ scale: (largeur / v1.width) * (window.devicePixelRatio || 1) });
+                        const c = document.createElement('canvas');
+                        c.width = vp.width; c.height = vp.height; c.style.width = largeur + 'px';
+                        corps.appendChild(c);
+                        await page.render({ canvas: c, canvasContext: c.getContext('2d'), viewport: vp }).promise;
+                    }
+                    corps.insertAdjacentHTML('beforeend', finHtml(doc.numPages > max ? `${doc.numPages - max} ${T.reste}` : ''));
+                    info.textContent = `${max} ${T.pages} ${doc.numPages}`;
+                    tache.destroy();
+                }
+            } catch (err) { corps.innerHTML = `<div class="alert alert-warning">${echap(err.message || 'Erreur')}</div>`; }
+        }));
+        btnAcheter.addEventListener('click', () => {
+            modalDoc.hide();
+            document.querySelector(`[data-acheter="${btnAcheter.dataset.cible}"]`)?.click();
+        });
+    }
+
+    // ---- Achat
+    const modalEl = document.getElementById('modalAchat');
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl);
+        let formationId = null, infos = null;
+        document.querySelectorAll('[data-acheter]').forEach(b => b.addEventListener('click', async () => {
+            formationId = b.dataset.acheter;
+            document.getElementById('achatTitre').textContent = b.dataset.titre;
+            document.getElementById('achatPrix').textContent = b.dataset.prix;
+            if (!infos) {
+                try { infos = await PG.api('/api/formations/paiement'); } catch (e) { infos = { demo: false, compte: '', moyens: {} }; }
+                const sel = document.getElementById('achatMoyen');
+                Object.entries(infos.moyens).forEach(([k, v]) => sel.insertAdjacentHTML('beforeend', `<option value="${k}">${v}</option>`));
+                document.getElementById('achatManuel').classList.toggle('d-none', !!infos.demo);
+                document.getElementById('achatCompte').innerHTML = infos.compte
+                    ? '{{ 'Envoyez le montant à :'|trans|e('js') }} <strong></strong>' : '{{ 'Payez par D17, Flouci, virement ou mandat, puis indiquez la référence ci-dessous.'|trans|e('js') }}';
+                if (infos.compte) document.querySelector('#achatCompte strong').textContent = infos.compte;
+            }
+            modal.show();
+        }));
+        document.getElementById('formAchat').addEventListener('submit', async e => {
+            e.preventDefault();
+            const btn = document.getElementById('achatEnvoyer'); btn.disabled = true;
+            try {
+                const r = await PG.api(`/api/formations/${formationId}/acheter`, { method: 'POST', body: { moyen: document.getElementById('achatMoyen').value, reference: document.getElementById('achatRef').value } });
+                PG.toast(r.message); modal.hide(); setTimeout(() => location.reload(), 900);
+            } catch (err) { PG.toast(err.message, 'danger'); btn.disabled = false; }
+        });
+    }
+
+    document.querySelectorAll('.fullscreen-btn').forEach(btn => {
+        btn.addEventListener('click', function () {
+            const v = document.getElementById(this.dataset.video);
+            if (!v) return;
+            (v.requestFullscreen || v.webkitRequestFullscreen || v.msRequestFullscreen)?.call(v);
+        });
+    });
+});
+</script>

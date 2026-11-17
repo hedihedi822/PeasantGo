@@ -1,0 +1,31 @@
+{# Page d'erreur affichée en production (403, 404, 500...) #}
+{% set messages = {
+    403: ['Accès refusé', "Vous n'avez pas les droits pour accéder à cette page."],
+    404: ['Page introuvable', "La page demandée n'existe pas ou a été déplacée."],
+} %}
+{% set m = messages[status_code] ?? ['Une erreur est survenue', 'Veuillez réessayer dans quelques instants.'] %}
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ m[0] }} – PeasantGo.AI</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap{{ app.request.locale == 'ar' ? '.rtl' }}.min.css" rel="stylesheet">
+    <style>
+        body { min-height: 100vh; display: flex; align-items: center; justify-content: center;
+               background: linear-gradient(rgba(255,255,255,.8), rgba(255,255,255,.8)), url('/Images/fond-ferme.avif') center/cover; }
+        .box { background: #fff; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.1); padding: 2.5rem; max-width: 460px; text-align: center; }
+        .code { font-size: 4rem; font-weight: 700; color: #2c7d4b; }
+    </style>
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+<body>
+    <div class="box">
+        <img src="/Images/logo.png" alt="PeasantGo.AI" height="60" class="mb-3">
+        <div class="code">{{ status_code }}</div>
+        <h1 class="h4">{{ m[0] }}</h1>
+        <p class="text-muted">{{ m[1] }}</p>
+        <a href="{{ path('app_home_no') }}" class="btn btn-success">Retour à l'accueil</a>
+    </div>
+</body>
+</html>

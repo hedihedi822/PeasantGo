@@ -1,0 +1,8 @@
+.git
+.github
+var
+vendor
+.env.local*
+node_modules
+*.zip
+public/Video

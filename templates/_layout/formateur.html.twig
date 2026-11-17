@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}PeasantGo.AI Formateurs{% endblock %}</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap{{ app.request.locale == 'ar' ? '.rtl' }}.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    {# Application « Formateurs » : sa propre barre, sans le menu des agriculteurs #}
+    <style>
+        :root { --primary-color: #2c7d4b; --primary-dark: #1f5c37; --box-shadow: 0 4px 14px rgba(0,0,0,.08); }
+        body { background: #f3f6f4; color: #343a40; min-height: 100vh; font-family: 'Segoe UI', Tahoma, Arial, sans-serif; }
+        .fm-bar { background: linear-gradient(90deg, #1f5c37, #2c7d4b); color: #fff; }
+        .fm-bar a { color: #fff; text-decoration: none; }
+        .fm-bar .marque { font-weight: 800; font-size: 1.15rem; }
+        .fm-bar .marque small { font-weight: 600; opacity: .8; }
+        .fm-bar .nav-fm a { opacity: .85; font-weight: 500; }
+        .fm-bar .nav-fm a:hover, .fm-bar .nav-fm a.actif { opacity: 1; text-decoration: underline; }
+        .card { border: none; border-radius: 14px; box-shadow: var(--box-shadow); }
+        .btn-success { background: var(--primary-color); border-color: var(--primary-color); }
+        .btn-success:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+        .section-title { color: var(--primary-color); font-weight: 700; }
+        .fm-pied { color: #6c757d; font-size: .85rem; }
+        {% block styles %}{% endblock %}
+    </style>
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+<body>
+    <header class="fm-bar">
+        <div class="container d-flex flex-wrap justify-content-between align-items-center py-3 gap-2">
+            <a href="{{ path('app_devenir_formateur') }}" class="marque d-flex align-items-center gap-2">
+                <img src="/Images/logo.png" alt="" height="38" class="bg-white rounded p-1">
+                <span>PeasantGo.AI <small>{{ 'Formateurs'|trans }}</small></span>
+            </a>
+            <nav class="nav-fm d-flex flex-wrap align-items-center gap-3 small">
+                <a href="{{ path('app_devenir_formateur') }}" class="{{ app.request.attributes.get('_route') == 'app_devenir_formateur' ? 'actif' }}">{{ 'Devenir formateur'|trans }}</a>
+                {% if app.user and app.user.formateur %}
+                    <a href="{{ path('app_espace_formateur') }}" class="{{ app.request.attributes.get('_route') == 'app_espace_formateur' ? 'actif' }}">{{ 'Mon espace formateur'|trans }}</a>
+                    <a href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt me-1"></i>{{ 'Déconnexion'|trans }}</a>
+                {% elseif app.user %}
+                    <a href="{{ path('app_espace_formateur') }}">{{ 'Mon espace formateur'|trans }}</a>
+                    <a href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt me-1"></i>{{ 'Déconnexion'|trans }}</a>
+                {% else %}
+                    <a href="{{ path('app_formateur_login') }}" class="{{ app.request.attributes.get('_route') == 'app_formateur_login' ? 'actif' }}"><i class="fas fa-sign-in-alt me-1"></i>{{ 'Déjà formateur ?'|trans }}</a>
+                {% endif %}
+                <span class="opacity-50">|</span>
+                {% for code, nom in {fr: 'FR', ar: 'ع', en: 'EN'} %}
+                    <a href="{{ path('app_langue', {code: code}) }}" class="{{ app.request.locale == code ? 'actif' }}">{{ nom }}</a>
+                {% endfor %}
+            </nav>
+        </div>
+    </header>
+    <main class="container py-4">
+        {{ include('_partials/flash.html.twig') }}
+        {% block body %}{% endblock %}
+    </main>
+    <footer class="container pb-4 fm-pied d-flex flex-wrap justify-content-between gap-2">
+        <span>© PeasantGo.AI – {{ 'Espace des formateurs'|trans }}</span>
+        <a href="{{ path('app_home_no') }}" class="text-muted">{{ 'Retour au site des agriculteurs'|trans }}</a>
+    </footer>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="/js/app.js"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

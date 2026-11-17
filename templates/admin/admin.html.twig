@@ -1,0 +1,604 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale }}" dir="{{ app.request.locale == 'ar' ? 'rtl' : 'ltr' }}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Équipe PeasantGo – Gestion des Données Agricoles</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
+    <style>
+        .tab-content, .detail-view, .form-view { display: none; }
+        .tab-content.active, .detail-view.active, .form-view.active { display: block; }
+        .nav-tabs .active {
+            border-bottom: 2px solid #3b82f6;
+            color: #3b82f6;
+        }
+        .action-buttons {
+            opacity: 0;
+            transition: opacity 0.2s ease;
+        }
+        tr:hover .action-buttons { opacity: 1; }
+        .nav-tabs {
+            overflow-x: auto;
+            white-space: nowrap;
+            padding-bottom: 2px;
+        }
+        .nav-tabs::-webkit-scrollbar {
+            height: 4px;
+        }
+        .nav-tabs::-webkit-scrollbar-track { background: #f1f1f1; }
+        .nav-tabs::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 2px;
+        }
+        .nav-tabs::-webkit-scrollbar-thumb:hover { background: #555; }
+        th.draggable, tr.draggable { cursor: move; }
+        .column-item { display: flex; align-items: center; margin-bottom: 0.5rem; }
+        .column-item input { flex-grow: 1; margin-right: 0.5rem; }
+        .calculation-method { margin-top: 0.5rem; }
+    </style>
+
+    <style>
+        .field-error { color: #dc2626; font-size: .8rem; }
+        td.cell { max-width: 260px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .badge-yes { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 9999px; font-size: .75rem; }
+        .badge-no { background: #f3f4f6; color: #4b5563; padding: 2px 8px; border-radius: 9999px; font-size: .75rem; }
+        .col-calc { background: #eff6ff; }
+        #toast-zone { position: fixed; top: 1rem; right: 1rem; z-index: 50; display: flex; flex-direction: column; gap: .5rem; }
+    </style>
+    {{ include('_partials/rtl.html.twig') }}
+</head>
+<body class="bg-gray-100 font-sans">
+    <div id="toast-zone"></div>
+    <div class="container mx-auto p-4">
+        <header class="bg-white shadow-sm rounded-lg p-4 mb-6 flex flex-wrap gap-3 justify-between items-center">
+            <div class="flex items-center gap-3">
+                <img src="/Images/logo.png" alt="Logo" class="h-10">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-800">Gestion des Données Agricoles</h1>
+                    <p class="text-sm text-gray-500">Connecté : {{ app.user.nomAffiche }} ({{ app.user.email }})</p>
+                </div>
+            </div>
+            <div class="flex gap-2">
+                <a href="{{ path('app_home_user') }}" class="py-2 px-3 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300"><i class="fas fa-globe mr-1"></i> Voir le site</a>
+                <a href="{{ path('app_logout') }}" class="py-2 px-3 bg-red-600 text-white rounded text-sm hover:bg-red-700"><i class="fas fa-sign-out-alt mr-1"></i> Déconnexion</a>
+            </div>
+        </header>
+
+        <details class="mb-4 bg-white rounded-lg shadow p-4" id="justif-panel">
+            <summary class="font-semibold cursor-pointer"><i class="fas fa-file-signature text-green-600 mr-2"></i>Justificatifs de terrains à vérifier <span id="justif-count" class="ml-1 text-xs bg-orange-500 text-white rounded-full px-2 py-0.5">…</span></summary>
+            <p class="text-xs text-gray-500 mt-2">Le robot pré-vérifie chaque document (lecture IA, nom/CIN du titulaire, surface, fichier déjà utilisé par un autre compte, contour qui chevauche un autre terrain). La décision finale est la vôtre ; un refus bloque le terrain jusqu'à l'envoi d'un nouveau document.</p>
+            <div id="justif-liste" class="mt-3 space-y-3 text-sm"></div>
+        </details>
+
+        <details class="mb-4 bg-white rounded-lg shadow p-4" id="formateurs-panel">
+            <summary class="font-semibold cursor-pointer"><i class="fas fa-chalkboard-teacher text-green-600 mr-2"></i>Candidatures de formateurs <span id="formateurs-count" class="ml-1 text-xs bg-orange-500 text-white rounded-full px-2 py-0.5">…</span></summary>
+            <p class="text-xs text-gray-500 mt-2">Accepter crée le compte formateur (avec le mot de passe choisi par le candidat) ou ajoute le rôle à son compte existant. Le formateur publie ensuite ses vidéos et PDF depuis son espace ; ils apparaissent dans Formations (onglet « Formations » pour les retirer).</p>
+            <div id="formateurs-liste" class="mt-3 space-y-3 text-sm"></div>
+        </details>
+
+        <details class="mb-4 bg-white rounded-lg shadow p-4" id="achats-panel">
+            <summary class="font-semibold cursor-pointer"><i class="fas fa-shopping-cart text-green-600 mr-2"></i>Achats de formations à vérifier <span id="achats-count" class="ml-1 text-xs bg-orange-500 text-white rounded-full px-2 py-0.5">…</span></summary>
+            <p class="text-xs text-gray-500 mt-2">L'agriculteur paie (D17, Flouci, virement, mandat) et donne la référence. Vérifiez la réception puis confirmez : la formation s'ouvre en entier sur son compte, avec tous ses terrains. Avant l'achat, il ne voit que 25 % de la vidéo.</p>
+            <div id="achats-liste" class="mt-3 space-y-3 text-sm"></div>
+        </details>
+
+        <details class="mb-4 bg-white rounded-lg shadow p-4" id="robot-panel">
+            <summary class="font-semibold cursor-pointer"><i class="fas fa-robot text-green-600 mr-2"></i>Robot PeasantGo.AI</summary>
+            <p class="text-xs text-gray-500 mt-2">Chaque nuit (cron) : <code>app:satellite:sync</code> → <code>app:robot:veille</code> (sites + apprentissage) → <code>app:robot:analyser</code> → <code>app:robot:classement</code> → <code>app:statistiques:notifier</code>. Les sites suivis se gèrent dans l'onglet « Robot : sources de veille ».</p>
+            <div class="flex flex-wrap gap-2 mt-3">
+                <button type="button" data-robot="veille" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-globe mr-1"></i> Lancer la veille des sites</button>
+                <button type="button" data-robot="apprendre" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-graduation-cap mr-1"></i> Apprendre des récoltes</button>
+                <button type="button" data-robot="analyser" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-calculator mr-1"></i> Recalculer tous les terrains</button>
+                <a href="{{ path('app_robot_zones', {cle: 'tomates'}) }}" class="py-1 px-3 border border-green-600 text-green-700 rounded text-sm hover:bg-green-50"><i class="fas fa-globe-africa mr-1"></i> Offre et demande par zone</a>
+            </div>
+        </details>
+
+        <details class="mb-6 bg-white rounded-lg shadow p-4" id="notif-panel">
+            <summary class="font-semibold cursor-pointer"><i class="fas fa-bell text-green-600 mr-2"></i>Notifications à tous les utilisateurs</summary>
+            <div class="grid md:grid-cols-2 gap-6 mt-4">
+                <form id="stats-form" class="border rounded p-4">
+                    <h4 class="font-semibold mb-2">Publier les nouvelles statistiques</h4>
+                    <p class="text-xs text-gray-500 mb-3">Compare les statistiques actuelles avec la dernière publication et envoie le résumé des changements à tout le monde. Envoi automatique chaque jour avec la commande <code>app:statistiques:notifier</code> (cron).</p>
+                    <label class="block text-sm mb-2">Variation minimale (%) <input type="number" name="seuil" value="5" min="0" max="100" step="0.5" class="ml-2 p-1 border rounded w-20"></label>
+                    <label class="block text-sm mb-1"><input type="checkbox" name="email" checked class="mr-1"> Envoyer aussi par email</label>
+                    <label class="block text-sm mb-3"><input type="checkbox" name="forcer" class="mr-1"> Envoyer même sans changement</label>
+                    <div class="flex gap-2">
+                        <button type="button" data-simulation="1" class="py-1 px-3 bg-gray-200 rounded text-sm hover:bg-gray-300">Aperçu</button>
+                        <button type="submit" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-paper-plane mr-1"></i> Publier</button>
+                    </div>
+                    <pre id="stats-preview" class="hidden mt-3 p-2 bg-gray-50 border rounded text-xs whitespace-pre-wrap"></pre>
+                </form>
+                <form id="annonce-form" class="border rounded p-4">
+                    <h4 class="font-semibold mb-2">Annonce</h4>
+                    <input type="text" name="titre" maxlength="150" placeholder="Titre" class="w-full p-2 border rounded text-sm mb-2">
+                    <textarea name="message" rows="3" maxlength="5000" placeholder="Message" class="w-full p-2 border rounded text-sm mb-2"></textarea>
+                    <input type="text" name="lien" placeholder="Lien (optionnel), ex : /formation/user" class="w-full p-2 border rounded text-sm mb-2">
+                    <label class="block text-sm mb-3"><input type="checkbox" name="email" checked class="mr-1"> Envoyer aussi par email</label>
+                    <button type="submit" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-bullhorn mr-1"></i> Envoyer à tous</button>
+                </form>
+            </div>
+        </details>
+
+        <div class="mb-6 bg-white rounded-lg shadow overflow-hidden">
+            <ul class="nav-tabs flex flex-nowrap border-b">
+                {% for key, label in onglets %}
+                    <li class="mr-2"><button type="button" class="tab-btn inline-block p-4 border-b-2 rounded-t-lg{{ loop.first ? ' active' }}" data-tab="{{ key }}">{{ label }}</button></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div id="main-content">
+            {# ---- Vue liste ---- #}
+            <div id="list-view" class="tab-content active">
+                <div class="card bg-white rounded-lg shadow overflow-hidden mb-6">
+                    <div class="p-4 border-b flex flex-wrap gap-2 justify-between items-center">
+                        <h3 class="font-semibold" id="table-title">…</h3>
+                        <form id="search-form" class="flex space-x-2">
+                            <input type="search" id="search-input" placeholder="Rechercher..." class="p-2 border rounded text-sm">
+                            <button type="submit" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-search mr-1"></i> Rechercher</button>
+                            <button type="button" id="add-btn" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700"><i class="fas fa-plus mr-1"></i> Ajouter</button>
+                        </form>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-sm">
+                            <thead id="thead"></thead>
+                            <tbody id="tbody"></tbody>
+                        </table>
+                    </div>
+                    <div class="p-4 border-t flex flex-wrap justify-between items-center gap-2">
+                        <span class="text-sm text-gray-500" id="count"></span>
+                        <div id="pager" class="flex gap-1"></div>
+                    </div>
+                    <details class="p-4 border-t">
+                        <summary class="font-semibold cursor-pointer">Gérer les colonnes (affichage)</summary>
+                        <p class="text-xs text-gray-500 mt-2">Glissez pour réordonner, décochez pour masquer, renommez l'en-tête. Les colonnes calculées sont évaluées dans le navigateur (ex : <code>saisons * productivite</code> → utilisez les identifiants de colonnes). Ces réglages sont mémorisés sur ce navigateur.</p>
+                        <div id="column-list" class="mt-3"></div>
+                        <div class="mt-4 grid md:grid-cols-3 gap-2">
+                            <input type="text" id="new-column-name" placeholder="Nom de la colonne calculée" class="p-2 border rounded text-sm">
+                            <input type="text" id="new-column-formula" placeholder="Formule, ex : coutTotalParHectare * 1.1" class="p-2 border rounded text-sm">
+                            <div class="flex gap-2">
+                                <button type="button" id="add-column-btn" class="py-1 px-3 bg-green-600 text-white rounded text-sm hover:bg-green-700">Ajouter Colonne</button>
+                                <button type="button" id="reset-columns-btn" class="py-1 px-3 bg-gray-200 rounded text-sm hover:bg-gray-300">Réinitialiser</button>
+                            </div>
+                        </div>
+                    </details>
+                </div>
+            </div>
+
+            {# ---- Vue détail ---- #}
+            <div id="detail-view" class="detail-view">
+                <div class="card bg-white rounded-lg shadow overflow-hidden mb-6">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-semibold" id="detail-title">Détails</h3>
+                        <button type="button" class="py-1 px-3 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300 back-btn"><i class="fas fa-arrow-left mr-1"></i> Retour</button>
+                    </div>
+                    <div class="p-6 grid grid-cols-1 md:grid-cols-2 gap-4" id="detail-content"></div>
+                </div>
+            </div>
+
+            {# ---- Vue formulaire ---- #}
+            <div id="form-view" class="form-view">
+                <div class="card bg-white rounded-lg shadow overflow-hidden mb-6">
+                    <div class="p-4 border-b flex justify-between items-center">
+                        <h3 class="font-semibold" id="form-title">Ajouter</h3>
+                        <button type="button" class="py-1 px-3 bg-gray-200 text-gray-800 rounded text-sm hover:bg-gray-300 back-btn"><i class="fas fa-arrow-left mr-1"></i> Retour</button>
+                    </div>
+                    <div class="p-6">
+                        <div id="form-error" class="hidden mb-4 p-3 rounded bg-red-50 text-red-700 text-sm"></div>
+                        <form id="record-form" novalidate>
+                            <div id="form-fields" class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4"></div>
+                            <div class="mt-8 pt-5 border-t flex justify-end">
+                                <button type="button" class="bg-white py-2 px-4 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 back-btn">Annuler</button>
+                                <button type="submit" class="ml-3 inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-green-600 hover:bg-green-700">Enregistrer</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/app.js"></script>
+    <script>
+        const { api, esc } = window.PG;
+        const state = { table: null, meta: null, rows: [], page: 1, pages: 1, q: '', editing: null };
+
+        function toast(msg, type = 'success') {
+            const el = document.createElement('div');
+            el.className = `px-4 py-3 rounded shadow text-sm text-white ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+            el.style.whiteSpace = 'pre-line';
+            el.textContent = msg;
+            document.getElementById('toast-zone').appendChild(el);
+            setTimeout(() => el.remove(), type === 'success' ? 3000 : 6000);
+        }
+
+        function show(view) {
+            ['list-view', 'detail-view', 'form-view'].forEach(v => document.getElementById(v).classList.toggle('active', v === view));
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // ---------- Configuration des colonnes (stockée localement) ----------
+        function cfgKey() { return 'pg_admin_cols_' + state.table; }
+        function loadCfg() {
+            try { return JSON.parse(localStorage.getItem(cfgKey())) || null; } catch (e) { return null; }
+        }
+        function saveCfg(cfg) {
+            try { localStorage.setItem(cfgKey(), JSON.stringify(cfg)); } catch (e) {}
+        }
+        function columnsCfg() {
+            const base = state.meta.columns.map(c => ({ id: c.id, name: c.name, visible: true }));
+            const saved = loadCfg();
+            if (!saved) return base;
+            const known = new Set(base.map(c => c.id));
+            const merged = saved.filter(c => c.calc || known.has(c.id));
+            base.forEach(c => { if (!merged.find(m => m.id === c.id)) merged.push(c); });
+            return merged;
+        }
+
+        function evalFormula(formula, row) {
+            const expr = formula.replace(/[A-Za-z_][A-Za-z0-9_]*/g, id => {
+                const v = parseFloat(row[id]);
+                return Number.isFinite(v) ? `(${v})` : 'NaN';
+            });
+            if (!/^[\d\s+\-*/().NaN]*$/.test(expr)) return '⚠';
+            try {
+                const r = Function('"use strict"; return (' + expr + ');')();
+                return Number.isFinite(r) ? Math.round(r * 100) / 100 : '—';
+            } catch (e) { return '⚠'; }
+        }
+
+        function display(col, v) {
+            if (v === null || v === undefined || v === '') return '<span class="text-gray-400">—</span>';
+            if (col && col.type === 'boolean') return v ? '<span class="badge-yes">Oui</span>' : '<span class="badge-no">Non</span>';
+            if (col && col.choices && col.choices[v]) return esc(col.choices[v]);
+            return esc(v);
+        }
+
+        // ---------- Chargement ----------
+        async function load(table, page = 1) {
+            state.table = table;
+            state.page = page;
+            try {
+                const res = await api(`/api/admin/${table}?page=${page}&q=${encodeURIComponent(state.q)}`);
+                state.meta = res;
+                state.rows = res.rows;
+                state.pages = res.pages;
+                document.getElementById('table-title').textContent = res.label;
+                document.getElementById('add-btn').style.display = res.canCreate ? '' : 'none';
+                renderTable();
+                renderColumnManager();
+            } catch (e) {
+                toast(e.message, 'error');
+            }
+        }
+
+        function renderTable() {
+            const cols = columnsCfg().filter(c => c.visible);
+            const metaCols = Object.fromEntries(state.meta.columns.map(c => [c.id, c]));
+            document.getElementById('thead').innerHTML = `<tr class="bg-gray-100 text-left text-gray-700">${cols.map(c => `<th class="p-3 border ${c.calc ? 'col-calc' : ''}">${esc(c.name)}</th>`).join('')}<th class="p-3 border">Actions</th></tr>`;
+            const tbody = document.getElementById('tbody');
+            tbody.innerHTML = state.rows.length ? state.rows.map(r => `
+                <tr class="hover:bg-gray-50" data-id="${esc(r._id)}">
+                    ${cols.map(c => `<td class="p-3 border cell ${c.calc ? 'col-calc' : ''}" title="${esc(c.calc ? '' : r[c.id] ?? '')}">${c.calc ? esc(evalFormula(c.formula, r)) : display(metaCols[c.id], r[c.id])}</td>`).join('')}
+                    <td class="p-3 border whitespace-nowrap">
+                        <button class="p-1 text-blue-600 hover:text-blue-800 view-btn" title="Détails"><i class="fas fa-eye"></i></button>
+                        <button class="p-1 text-blue-600 hover:text-blue-800 edit-btn" title="Modifier"><i class="fas fa-edit"></i></button>
+                        <button class="p-1 text-red-600 hover:text-red-800 delete-btn" title="Supprimer"><i class="fas fa-trash"></i></button>
+                    </td>
+                </tr>`).join('') : `<tr><td colspan="${cols.length + 1}" class="p-6 text-center text-gray-500">Aucun enregistrement${state.q ? ' pour « ' + esc(state.q) + ' »' : ''}.</td></tr>`;
+
+            document.getElementById('count').textContent = `${state.meta.total} enregistrement(s) – page ${state.page}/${state.pages}`;
+            let p = '';
+            for (let i = 1; i <= state.pages; i++) {
+                p += `<button type="button" data-page="${i}" class="px-3 py-1 rounded border text-sm ${i === state.page ? 'bg-green-600 text-white' : 'bg-white hover:bg-gray-100'}">${i}</button>`;
+            }
+            document.getElementById('pager').innerHTML = state.pages > 1 ? p : '';
+        }
+
+        function renderColumnManager() {
+            const list = document.getElementById('column-list');
+            list.innerHTML = columnsCfg().map(c => `
+                <div class="column-item draggable" data-col-id="${esc(c.id)}">
+                    <i class="fas fa-grip-vertical text-gray-400 mr-2"></i>
+                    <input type="checkbox" class="mr-2 col-visible" ${c.visible ? 'checked' : ''} title="Afficher">
+                    <input type="text" value="${esc(c.name)}" class="p-2 border rounded text-sm column-name-input">
+                    ${c.calc ? `<code class="text-xs mr-2">${esc(c.formula)}</code><button type="button" class="p-1 text-red-600 hover:text-red-800 delete-column-btn" title="Supprimer"><i class="fas fa-trash"></i></button>` : `<span class="text-xs text-gray-400">${esc(c.id)}</span>`}
+                </div>`).join('');
+            if (window.Sortable) new Sortable(list, { animation: 150, onEnd: persistManager });
+        }
+
+        function persistManager() {
+            const current = columnsCfg();
+            const cfg = [...document.querySelectorAll('#column-list .column-item')].map(el => {
+                const c = current.find(x => x.id === el.dataset.colId);
+                return { ...c, name: el.querySelector('.column-name-input').value.trim() || c.name, visible: el.querySelector('.col-visible').checked };
+            });
+            saveCfg(cfg);
+            renderTable();
+        }
+
+        document.getElementById('column-list').addEventListener('change', persistManager);
+        document.getElementById('column-list').addEventListener('click', e => {
+            if (!e.target.closest('.delete-column-btn')) return;
+            const id = e.target.closest('.column-item').dataset.colId;
+            saveCfg(columnsCfg().filter(c => c.id !== id));
+            renderTable(); renderColumnManager();
+        });
+        document.getElementById('add-column-btn').addEventListener('click', () => {
+            const name = document.getElementById('new-column-name').value.trim();
+            const formula = document.getElementById('new-column-formula').value.trim();
+            if (!name || !formula) { toast('Nom et formule obligatoires.', 'error'); return; }
+            const cfg = columnsCfg();
+            cfg.push({ id: 'calc_' + Date.now(), name, formula, calc: true, visible: true });
+            saveCfg(cfg);
+            document.getElementById('new-column-name').value = '';
+            document.getElementById('new-column-formula').value = '';
+            renderTable(); renderColumnManager();
+        });
+        document.getElementById('reset-columns-btn').addEventListener('click', () => {
+            try { localStorage.removeItem(cfgKey()); } catch (e) {}
+            renderTable(); renderColumnManager();
+        });
+
+        // ---------- Détail ----------
+        function renderDetail(row) {
+            document.getElementById('detail-title').textContent = `${state.meta.label} – #${row._id}`;
+            document.getElementById('detail-content').innerHTML = state.meta.columns.map(c => `
+                <div><label class="block text-sm font-medium text-gray-700">${esc(c.name)}</label>
+                <p class="mt-1 text-sm text-gray-900 break-words">${c.file && row[c.id] ? `<a class="text-blue-600 underline" href="${esc(row[c.id])}" target="_blank" rel="noopener">${esc(row[c.id])}</a>` : display(c, row[c.id])}</p></div>`).join('');
+            show('detail-view');
+        }
+
+        // ---------- Formulaire ----------
+        function input(c, v) {
+            const disabled = !c.editable || (c.createOnly && state.editing) ? 'disabled' : '';
+            const cls = 'mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 sm:text-sm focus:outline-none focus:ring-green-500 focus:border-green-500 disabled:bg-gray-100';
+            const val = v ?? '';
+            if (c.type === 'boolean') {
+                return `<label class="inline-flex items-center mt-2"><input type="checkbox" name="${c.id}" ${v ? 'checked' : ''} ${disabled} class="mr-2"> Oui</label>`;
+            }
+            if (c.choices) {
+                return `<select name="${c.id}" class="${cls}" ${disabled}><option value="">—</option>${Object.entries(c.choices).map(([k, l]) => `<option value="${esc(k)}" ${String(val) === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
+            }
+            if (c.type === 'text' || c.type === 'json') {
+                return `<textarea name="${c.id}" rows="3" class="${cls}" ${disabled}>${esc(val)}</textarea>`;
+            }
+            const type = ['integer', 'smallint', 'bigint', 'float', 'decimal'].includes(c.type) ? 'number' : c.type === 'date' ? 'date' : c.type === 'datetime' ? 'datetime-local' : 'text';
+            const step = ['float', 'decimal'].includes(c.type) ? 'step="any"' : '';
+            const value = c.type === 'datetime' && val ? String(val).replace(' ', 'T') : val;
+            let html = `<input type="${type}" name="${c.id}" value="${esc(value)}" ${step} class="${cls}" ${disabled}>`;
+            if (c.file && !disabled) {
+                html += `<input type="file" data-target="${c.id}" class="upload-input mt-1 text-xs" accept="${c.id === 'formationVideo' ? 'video/mp4,video/webm' : c.id === 'posterPath' ? 'image/*' : '.pdf,.doc,.docx'}">`;
+            }
+            return html;
+        }
+
+        function renderForm(row = null) {
+            state.editing = row ? row._id : null;
+            document.getElementById('form-title').textContent = row ? `Modifier – ${state.meta.label} #${row._id}` : `Ajouter – ${state.meta.label}`;
+            document.getElementById('form-error').classList.add('hidden');
+            const cols = state.meta.columns.filter(c => !(c.generated && !row) && c.id !== 'typeCompte');
+            document.getElementById('form-fields').innerHTML = cols.map(c => `
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">${esc(c.name)}${!c.nullable && c.editable && c.type !== 'boolean' ? ' <span class="text-red-600">*</span>' : ''}</label>
+                    ${input(c, row ? row[c.id] : null)}
+                    <div class="field-error" data-error="${c.id}"></div>
+                </div>`).join('');
+            show('form-view');
+        }
+
+        document.getElementById('form-fields').addEventListener('change', async e => {
+            const up = e.target.closest('.upload-input');
+            if (!up || !up.files.length) return;
+            const fd = new FormData();
+            fd.append('file', up.files[0]);
+            up.disabled = true;
+            try {
+                const res = await api('/api/admin/upload', { method: 'POST', body: fd });
+                document.querySelector(`#form-fields [name="${up.dataset.target}"]`).value = res.path;
+                toast('Fichier envoyé : ' + res.path);
+            } catch (err) { toast(err.message, 'error'); }
+            up.disabled = false;
+        });
+
+        document.getElementById('record-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const body = {};
+            state.meta.columns.forEach(c => {
+                const el = document.querySelector(`#form-fields [name="${c.id}"]`);
+                if (!el || el.disabled) return;
+                body[c.id] = el.type === 'checkbox' ? el.checked : el.value;
+            });
+            document.querySelectorAll('.field-error').forEach(el => el.textContent = '');
+            try {
+                if (state.editing) {
+                    await api(`/api/admin/${state.table}/${encodeURIComponent(state.editing)}`, { method: 'PUT', body });
+                } else {
+                    await api(`/api/admin/${state.table}`, { method: 'POST', body });
+                }
+                toast('Données enregistrées avec succès !');
+                show('list-view');
+                load(state.table, state.page);
+            } catch (err) {
+                const box = document.getElementById('form-error');
+                box.textContent = err.message;
+                box.classList.remove('hidden');
+                Object.entries(err.errors || {}).forEach(([f, m]) => {
+                    const el = document.querySelector(`[data-error="${f}"]`);
+                    if (el) el.textContent = m;
+                });
+            }
+        });
+
+        // ---------- Événements ----------
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.addEventListener('click', () => {
+            document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.q = '';
+            document.getElementById('search-input').value = '';
+            show('list-view');
+            load(btn.dataset.tab);
+            try { history.replaceState(null, '', '#' + btn.dataset.tab); } catch (e) {}
+        }));
+
+        document.getElementById('search-form').addEventListener('submit', e => {
+            e.preventDefault();
+            state.q = document.getElementById('search-input').value.trim();
+            load(state.table, 1);
+        });
+        document.getElementById('add-btn').addEventListener('click', () => renderForm());
+        document.getElementById('pager').addEventListener('click', e => {
+            const b = e.target.closest('[data-page]');
+            if (b) load(state.table, parseInt(b.dataset.page, 10));
+        });
+        document.querySelectorAll('.back-btn').forEach(b => b.addEventListener('click', () => show('list-view')));
+
+        document.getElementById('tbody').addEventListener('click', async e => {
+            const tr = e.target.closest('tr[data-id]');
+            if (!tr) return;
+            const row = state.rows.find(r => String(r._id) === tr.dataset.id);
+            if (e.target.closest('.view-btn')) renderDetail(row);
+            if (e.target.closest('.edit-btn')) renderForm(row);
+            if (e.target.closest('.delete-btn')) {
+                if (!confirm(`Supprimer l'enregistrement #${row._id} ?`)) return;
+                try {
+                    await api(`/api/admin/${state.table}/${encodeURIComponent(row._id)}`, { method: 'DELETE' });
+                    toast(`Enregistrement #${row._id} supprimé.`);
+                    load(state.table, state.page);
+                } catch (err) { toast(err.message, 'error'); }
+            }
+        });
+
+        // ---------- Notifications ----------
+        async function publierStats(simulation) {
+            const f = document.getElementById('stats-form');
+            const body = { seuil: f.seuil.value, email: f.email.checked, forcer: f.forcer.checked, simulation };
+            if (!simulation && !confirm('Envoyer les statistiques à TOUS les utilisateurs ?')) return;
+            try {
+                const res = await api('/api/admin/notifications/statistiques', { method: 'POST', body });
+                const pre = document.getElementById('stats-preview');
+                if (res.titre) {
+                    pre.textContent = res.titre + '\n\n' + res.corps;
+                    pre.classList.remove('hidden');
+                }
+                toast(res.message);
+            } catch (e) { toast(e.message, 'error'); }
+        }
+        document.getElementById('stats-form').addEventListener('submit', e => { e.preventDefault(); publierStats(false); });
+        document.querySelector('#stats-form [data-simulation]').addEventListener('click', () => publierStats(true));
+        document.getElementById('annonce-form').addEventListener('submit', async e => {
+            e.preventDefault();
+            const f = e.target;
+            if (!confirm('Envoyer cette annonce à TOUS les utilisateurs ?')) return;
+            try {
+                const res = await api('/api/admin/notifications/annonce', { method: 'POST', body: { titre: f.titre.value, message: f.message.value, lien: f.lien.value, email: f.email.checked } });
+                toast(res.message);
+                f.reset();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+
+        async function chargerJustificatifs() {
+            const box = document.getElementById('justif-liste');
+            try {
+                const r = await api('/api/admin/justificatifs');
+                document.getElementById('justif-count').textContent = r.terrains.length;
+                box.innerHTML = r.terrains.length ? r.terrains.map(t => `<div class="border rounded p-3">
+                    <div class="flex flex-wrap justify-between gap-2"><div><strong>${esc(t.nom)}</strong> · ${t.surface} ha · ${esc(t.localisation || '')} ${t.gouvernorat ? '(' + esc(t.gouvernorat) + ')' : ''}<br>
+                    <span class="text-gray-600">${esc(t.agriculteur)} · CIN ${esc(String(t.cin || '—'))} · ${esc(t.email)}</span></div>
+                    <div class="text-right"><span class="text-xs rounded px-2 py-0.5 ${t.statut === 'verifie_ia' ? 'bg-green-100 text-green-800' : 'bg-orange-100 text-orange-800'}">${esc(t.statutLabel)}</span><br><span class="text-xs text-gray-500">${esc(t.type)} · reçu le ${esc(t.recu || '')}</span></div></div>
+                    ${t.lu ? `<div class="text-xs text-gray-600 mt-1">Lu par le robot : ${esc(t.lu.type_document || '?')} · titulaire(s) ${esc((t.lu.noms_titulaires || []).join(', ') || '?')} · CIN ${esc((t.lu.cin || []).join(', ') || '?')} · ${t.lu.surface_ha ?? '?'} ha · ${esc(t.lu.lieu || '?')} · confiance ${t.lu.confiance ?? '?'}</div>` : ''}
+                    ${t.motifs.length ? `<ul class="text-xs text-orange-700 mt-1 list-disc ml-5">${t.motifs.map(m => `<li>${esc(m)}</li>`).join('')}</ul>` : ''}
+                    <div class="flex flex-wrap gap-2 mt-2 items-center">
+                        <a href="${t.document}" target="_blank" rel="noopener" class="py-1 px-3 border rounded text-xs hover:bg-gray-50"><i class="fas fa-eye mr-1"></i>Voir le document</a>
+                        <button type="button" class="py-1 px-3 bg-green-600 text-white rounded text-xs" data-jd="valider" data-id="${t.id}">Valider</button>
+                        <input class="border rounded px-2 py-1 text-xs flex-1 min-w-[180px]" placeholder="Motif du refus (visible par l'agriculteur)" id="motif-${t.id}">
+                        <button type="button" class="py-1 px-3 bg-red-600 text-white rounded text-xs" data-jd="refuser" data-id="${t.id}">Refuser</button>
+                    </div></div>`).join('') : '<p class="text-gray-500">Aucun justificatif en attente.</p>';
+            } catch (e) { box.textContent = e.message; }
+        }
+        document.getElementById('justif-liste').addEventListener('click', async e => {
+            const b = e.target.closest('[data-jd]');
+            if (!b) return;
+            try {
+                const r = await api(`/api/admin/justificatifs/${b.dataset.id}/${b.dataset.jd}`, { method: 'POST', body: { motif: document.getElementById('motif-' + b.dataset.id).value } });
+                toast(r.message);
+                chargerJustificatifs();
+
+        async function chargerAchats() {
+            const box = document.getElementById('achats-liste');
+            try {
+                const r = await api('/api/admin/achats-formations');
+                document.getElementById('achats-count').textContent = r.achats.length;
+                box.innerHTML = r.achats.length ? r.achats.map(a => `<div class="border rounded p-3">
+                    <div class="flex flex-wrap justify-between gap-2"><div><strong>${esc(a.client)}</strong> · ${esc(a.email)} · ${esc(a.telephone || '')}<br>
+                    <span class="text-gray-700">« ${esc(a.formation)} »${a.formateur ? ' – ' + esc(a.formateur) : ''} · <strong>${a.prix} DT</strong></span></div>
+                    <span class="text-xs text-gray-500">déclaré le ${esc(a.le)}</span></div>
+                    <div class="text-xs mt-1"><strong>Moyen :</strong> ${esc(a.moyen)} · <strong>Référence :</strong> ${esc(a.reference || '—')}</div>
+                    <div class="flex flex-wrap gap-2 mt-2 items-center">
+                        <button type="button" class="py-1 px-3 bg-green-600 text-white rounded text-xs" data-ach="confirmer" data-id="${a.id}">Paiement reçu : ouvrir</button>
+                        <input class="border rounded px-2 py-1 text-xs flex-1 min-w-[180px]" placeholder="Motif (facultatif)" id="amotif-${a.id}">
+                        <button type="button" class="py-1 px-3 bg-red-600 text-white rounded text-xs" data-ach="refuser" data-id="${a.id}">Paiement introuvable</button>
+                    </div></div>`).join('') : '<p class="text-gray-500">Aucun achat en attente.</p>';
+            } catch (e) { box.textContent = e.message; }
+        }
+        document.getElementById('achats-liste').addEventListener('click', async e => {
+            const b = e.target.closest('[data-ach]');
+            if (!b) return;
+            try {
+                const r = await api(`/api/admin/achats-formations/${b.dataset.id}/${b.dataset.ach}`, { method: 'POST', body: { motif: document.getElementById('amotif-' + b.dataset.id).value } });
+                toast(r.message); chargerAchats();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+        chargerAchats();
+
+        async function chargerFormateurs() {
+            const box = document.getElementById('formateurs-liste');
+            try {
+                const r = await api('/api/admin/candidatures-formateurs');
+                document.getElementById('formateurs-count').textContent = r.candidatures.length;
+                box.innerHTML = r.candidatures.length ? r.candidatures.map(c => `<div class="border rounded p-3">
+                    <div class="flex flex-wrap justify-between gap-2"><div><strong>${esc(c.nom)}</strong>${c.profession ? ' · ' + esc(c.profession) : ''}${c.experience != null ? ' · ' + c.experience + ' an(s)' : ''}<br>
+                    <span class="text-gray-600">${esc(c.email)} · ${esc(c.telephone || '')}${c.compte ? ' · <em>déjà membre</em>' : ''}</span></div>
+                    <span class="text-xs text-gray-500">reçue le ${esc(c.recu)}</span></div>
+                    <div class="text-xs mt-1"><strong>Domaines :</strong> ${c.domaines.map(esc).join(', ')}${c.formats.length ? ' · <strong>Formats :</strong> ' + c.formats.map(esc).join(', ') : ''}</div>
+                    ${c.lien ? `<div class="text-xs"><a class="text-green-700 underline" href="${esc(c.lien)}" target="_blank" rel="noopener">${esc(c.lien)}</a></div>` : ''}
+                    ${c.message ? `<div class="text-xs text-gray-700 mt-1">${esc(c.message)}</div>` : ''}
+                    <div class="flex flex-wrap gap-2 mt-2 items-center">
+                        <button type="button" class="py-1 px-3 bg-green-600 text-white rounded text-xs" data-fd="accepter" data-id="${c.id}">Accepter</button>
+                        <input class="border rounded px-2 py-1 text-xs flex-1 min-w-[180px]" placeholder="Motif du refus (facultatif)" id="fmotif-${c.id}">
+                        <button type="button" class="py-1 px-3 bg-red-600 text-white rounded text-xs" data-fd="refuser" data-id="${c.id}">Refuser</button>
+                    </div></div>`).join('') : '<p class="text-gray-500">Aucune candidature en attente.</p>';
+            } catch (e) { box.textContent = e.message; }
+        }
+        document.getElementById('formateurs-liste').addEventListener('click', async e => {
+            const b = e.target.closest('[data-fd]');
+            if (!b) return;
+            try {
+                const r = await api(`/api/admin/candidatures-formateurs/${b.dataset.id}/${b.dataset.fd}`, { method: 'POST', body: { motif: document.getElementById('fmotif-' + b.dataset.id).value } });
+                toast(r.message);
+                chargerFormateurs();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+        chargerFormateurs();
+            } catch (err) { toast(err.message, 'error'); }
+        });
+        chargerJustificatifs();
+
+        document.querySelectorAll('[data-robot]').forEach(btn => btn.addEventListener('click', async () => {
+            btn.disabled = true;
+            const html = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-1"></i> En cours…';
+            try { const r = await api('/api/admin/robot/' + btn.dataset.robot, { method: 'POST' }); toast(r.message); if (state.table) load(state.table, state.page); }
+            catch (e) { toast(e.message, 'error'); }
+            btn.disabled = false;
+            btn.innerHTML = html;
+        }));
+
+        // Onglet initial (#produits, #utilisateurs...)
+        const initial = document.querySelector(`.tab-btn[data-tab="${location.hash.slice(1)}"]`) || document.querySelector('.tab-btn');
+        initial.click();
+    </script>
+</body>
+</html>

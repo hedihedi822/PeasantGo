@@ -1,0 +1,27 @@
+{# Menu latéral. Variable : active = 'accueil' | 'formation' | 'classement' | clé d'une page (PagesController::PAGES) #}
+<aside class="sidebar">
+    <ul class="nav flex-column nav-pills">
+        <li class="nav-item">
+            <a class="nav-link{{ active == 'accueil' ? ' active' }}" href="{{ app.user ? path('app_home_user') : path('app_home_no') }}"><i class="fas fa-home"></i>{{ 'Accueil'|trans }}</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link{{ active == 'classement' ? ' active' }}" href="{{ path('app_robot_classement') }}"><i class="fas fa-trophy"></i>{{ 'Cultures rentables'|trans }}</a>
+        </li>
+        <li class="nav-item">
+            <a class="nav-link{{ active == 'formation' ? ' active' }}" href="{{ app.user ? path('app_formation_user') : path('app_formation_no_user') }}"><i class="fas fa-graduation-cap"></i>{{ 'Formation'|trans }}</a>
+        </li>
+        {% for cle, p in {
+            projets: ['app_page_projets', 'fa-project-diagram', 'Grands projets'],
+            bonification: ['app_page_bonification', 'fa-tractor', 'Bonification des terres'],
+            recrutement: ['app_page_recrutement', 'fa-user-friends', 'Recrutement'],
+            marketplace: ['app_page_marketplace', 'fa-store', 'Marketplace'],
+            tourisme: ['app_page_tourisme', 'fa-campground', 'Tourisme agricole'],
+            actualites: ['app_page_actualites', 'fa-newspaper', 'Actualités'],
+            syndicat: ['app_page_syndicat', 'fa-users', 'Syndicat'],
+        } %}
+            <li class="nav-item">
+                <a class="nav-link{{ active == cle ? ' active' }}" href="{{ path(p[0]) }}"><i class="fas {{ p[1] }}"></i>{{ p[2]|trans }}</a>
+            </li>
+        {% endfor %}
+    </ul>
+</aside>

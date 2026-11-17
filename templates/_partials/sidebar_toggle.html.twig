@@ -1,0 +1,15 @@
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const menuToggle = document.querySelector('.menu-toggle');
+    const sidebar = document.querySelector('.sidebar');
+    const mainContent = document.querySelector('.main-content');
+    if (menuToggle && sidebar) {
+        menuToggle.addEventListener('click', function () {
+            sidebar.classList.toggle('show');
+            if (mainContent) {
+                mainContent.style.marginLeft = sidebar.classList.contains('show') ? 'var(--sidebar-width)' : '0';
+            }
+        });
+    }
+});
+</script>

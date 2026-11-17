@@ -1,0 +1,104 @@
+{% extends '_layout/app.html.twig' %}
+{% block title %}{{ culture }} par zone – PeasantGo.AI{% endblock %}
+{% block navbar %}{{ include('_partials/navbar.html.twig', {fixed: false}) }}{% endblock %}
+{% block styles %}
+    .zone-table th { font-size: .82rem; white-space: nowrap; }
+    .zone-table td { font-size: .9rem; }
+    .src { font-size: .7rem; }
+    .niveau-monde td:first-child { border-left: 4px solid #6c757d; }
+    .niveau-pays td:first-child { border-left: 4px solid #0d6efd; }
+    .niveau-gouvernorat td:first-child { border-left: 4px solid #fd7e14; }
+    .niveau-localite td:first-child { border-left: 4px solid var(--primary-color); }
+{% endblock %}
+{% macro source(s) %}
+    {% set couleurs = {officiel: 'success', admin: 'primary', app: 'info', modele: 'warning', demo: 'secondary', referentiel: 'secondary', 'pays suivis': 'light', inconnue: 'light'} %}
+    {% set noms = {officiel: 'officiel', admin: 'équipe', app: 'PeasantGo', modele: 'modèle', demo: 'démo', referentiel: 'référentiel', 'pays suivis': 'pays suivis', inconnue: 'inconnu'} %}
+    {% set base = (s ?? 'inconnue')|split(' ')|first|split('+')|first %}
+    <span class="badge src bg-{{ couleurs[base] ?? 'light' }} {{ base in ['pays suivis', 'inconnue'] ? 'text-dark' }}" title="{{ s }}">{{ noms[base] ?? s }}{{ '+tendance' in (s ?? '') ? ' + tendance' }}</span>
+{% endmacro %}
+{% block body %}
+{% import _self as m %}
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-3 gap-2">
+    <div>
+        <a href="{{ path('app_admin') }}" class="small"><i class="fas fa-arrow-left me-1"></i>Retour au panneau admin</a> <span class="badge bg-secondary ms-1">Équipe</span>
+        <h1 class="h3 section-title mb-0 mt-1"><i class="fas fa-globe-africa me-2"></i>{{ culture }} : offre et demande par zone</h1>
+    </div>
+    <form method="get" class="d-flex gap-2" onsubmit="window.location = '{{ path('app_robot_zones', {cle: 'CLE'}) }}'.replace('CLE', this.c.value) + '?gouvernorat=' + this.g.value; return false;">
+        <select name="c" class="form-select form-select-sm" aria-label="Culture">
+            {% for k, n in cultures %}<option value="{{ k }}"{{ k == cle ? ' selected' }}>{{ n }}</option>{% endfor %}
+        </select>
+        <select name="g" class="form-select form-select-sm" aria-label="Gouvernorat">
+            {% for z in gouvernorats %}<option value="{{ z.code }}"{{ gouvernorat and z.code == gouvernorat.code ? ' selected' }}>{{ z.nom }}</option>{% endfor %}
+        </select>
+        <button class="btn btn-success btn-sm">Voir</button>
+    </form>
+</div>
+
+<div class="card card-body mb-3">
+    <div class="table-responsive">
+        <table class="table zone-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Zone</th>
+                    <th>Coût de culture</th>
+                    <th>Production</th>
+                    <th>Population</th>
+                    <th>Consommation / habitant</th>
+                    <th>Consommation totale</th>
+                    <th>Solde</th>
+                    <th>Exporter vers (plus proches en manque)</th>
+                    <th>Importer depuis (plus proches en excès)</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for l in lignes %}
+                <tr class="niveau-{{ l.niveau }}">
+                    <td><strong>{{ l.zone }}</strong><br><small class="text-muted">{{ l.niveauLabel }}</small></td>
+                    <td>{{ l.coutHa ? l.coutHa|number_format(0, ',', ' ') ~ ' DT/ha' : '—' }}<br>{{ m.source(l.sourceCout) }}</td>
+                    <td>{{ l.production is not null ? l.production|number_format(0, ',', ' ') ~ ' t' : '—' }}<br>{{ m.source(l.sourceProduction) }}</td>
+                    <td>{{ l.population ? l.population|number_format(0, ',', ' ') : '—' }}</td>
+                    <td>{{ l.consoKgHab is not null ? l.consoKgHab|number_format(1, ',', ' ') ~ ' kg/an' : '—' }}<br>{{ m.source(l.sourceConso) }}</td>
+                    <td>{{ l.consoTotale is not null ? l.consoTotale|number_format(0, ',', ' ') ~ ' t' : '—' }}</td>
+                    <td>
+                        {% if l.solde is not null %}
+                            <strong class="{{ l.solde >= 0 ? 'text-success' : 'text-danger' }}">{{ l.solde >= 0 ? '+' }}{{ l.solde|number_format(0, ',', ' ') }} t</strong>
+                            {% if l.tauxCouverture %}<br><small class="text-muted">couverture {{ l.tauxCouverture }} %</small>{% endif %}
+                        {% else %}—{% endif %}
+                    </td>
+                    <td class="small">
+                        {% for e in l.export %}<div>{{ e.zone }} : {{ e.quantite|number_format(0, ',', ' ') }} t{% if e.distanceKm %} <span class="text-muted">({{ e.distanceKm|number_format(0, ',', ' ') }} km)</span>{% endif %}</div>{% endfor %}
+                        {% if l.resteExport is defined %}<div class="text-muted">reste {{ l.resteExport|number_format(0, ',', ' ') }} t : autres marchés</div>{% endif %}
+                        {% if not l.export and (l.solde ?? 0) > 0 %}<span class="text-muted">aucune zone voisine en manque</span>{% endif %}
+                        {% if (l.solde ?? 0) <= 0 %}—{% endif %}
+                    </td>
+                    <td class="small">
+                        {% for e in l.import %}<div>{{ e.zone }} : {{ e.quantite|number_format(0, ',', ' ') }} t{% if e.distanceKm %} <span class="text-muted">({{ e.distanceKm|number_format(0, ',', ' ') }} km)</span>{% endif %}</div>{% endfor %}
+                        {% if l.resteImport is defined %}<div class="text-muted">reste {{ l.resteImport|number_format(0, ',', ' ') }} t : marché international</div>{% endif %}
+                        {% if (l.solde ?? 0) >= 0 %}—{% endif %}
+                    </td>
+                </tr>
+            {% else %}
+                <tr><td colspan="9" class="text-center text-muted py-4">Aucune zone : lancez « php bin/console app:robot:initialiser ».</td></tr>
+            {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% if tendanceGouv %}
+<div class="card card-body mb-3 small">
+    <h2 class="h6 fw-bold"><i class="fas fa-chart-line me-1 text-pg"></i>Progression de la saison dans le gouvernorat ({{ gouvernorat.nom }})</h2>
+    <p class="mb-1">Surface déclarée sur PeasantGo depuis le 1<sup>er</sup> septembre : <strong>{{ tendanceGouv.surfaceDeclaree|number_format(2, ',', ' ') }} ha</strong> ({{ tendanceGouv.terrains }} terrain(s)) – à la même date l'an dernier : {{ tendanceGouv.surfaceMemeDateAnPasse|number_format(2, ',', ' ') }} ha, sur toute la campagne : {{ tendanceGouv.surfaceFinaleAnPasse|number_format(2, ',', ' ') }} ha.</p>
+    {% if tendanceGouv.surfaceFinaleProjetee %}<p class="mb-1">Surface projetée en fin de saison : <strong>{{ tendanceGouv.surfaceFinaleProjetee|number_format(2, ',', ' ') }} ha</strong>.</p>{% endif %}
+    <p class="mb-0 text-muted">{{ tendanceGouv.facteur ? 'La production du gouvernorat est ajustée × ' ~ tendanceGouv.facteur ~ ' selon cette progression.' : 'Pas encore assez de déclarations pour ajuster la production (3 terrains minimum chaque année).' }}</p>
+</div>
+{% endif %}
+
+<p class="small text-muted">
+    Sources : <span class="badge bg-success src">officiel</span> collecté par la veille sur les sites officiels ·
+    <span class="badge bg-primary src">équipe</span> saisi par l'équipe PeasantGo ·
+    <span class="badge bg-warning src">modèle</span> calculé par le robot (part de la zone dans la production de sa zone parente) ·
+    <span class="badge bg-secondary src">démo</span> chiffres de démonstration à remplacer. Population des gouvernorats : INS, recensement 2024.
+    Le « monde » est la somme des pays suivis par le robot.
+</p>
+{% endblock %}

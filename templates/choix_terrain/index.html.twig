@@ -1,0 +1,323 @@
+{% extends '_layout/app.html.twig' %}
+{% block title %}{{ 'Mes terrains'|trans }} – PeasantGo.AI{% endblock %}
+{% block main_class %}container-fluid py-3 px-lg-4{% endblock %}
+{% block head %}
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.css">
+{% endblock %}
+{% block styles %}
+    #carte { height: calc(100vh - 150px); min-height: 420px; border-radius: 12px; background: var(--soft); }
+    #carteVide { height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; color: #6c757d; padding: 2rem; }
+    .liste-terrains { max-height: calc(100vh - 150px); overflow-y: auto; }
+    .terrain-item { cursor: pointer; transition: box-shadow .15s, outline-color .15s; outline: 3px solid transparent; }
+    .terrain-item.selectionne { outline-color: var(--primary-color); }
+    .terrain-item:hover { box-shadow: 0 8px 20px rgba(0,0,0,.12); }
+    .statut { font-size: .72rem; }
+    .statut-verifie, .statut-verifie_ia { background: #2e7d32; }
+    .statut-en_attente { background: #ef6c00; }
+    .statut-a_fournir, .statut-refuse { background: #c62828; }
+    .etape { border-left: 3px solid var(--primary-color); padding-left: .9rem; margin-bottom: 1rem; }
+    .etape h3 { font-size: .95rem; font-weight: 700; color: var(--primary-color); }
+    .menu-compte .list-group-item { border: none; padding: .65rem 1rem; }
+    .menu-compte .list-group-item i { width: 26px; color: var(--primary-color); }
+    .leaflet-draw-tooltip { font-size: 13px; }
+{% endblock %}
+{% block navbar %}
+<nav class="navbar navbar-light">
+    <div class="container-fluid">
+        <a class="navbar-brand d-flex align-items-center" href="#"><img src="/Images/logo.png" alt="" height="44" class="me-2"><span>PeasantGo.AI</span></a>
+        <a class="btn btn-sm btn-outline-danger" href="{{ path('app_logout') }}"><i class="fas fa-sign-out-alt me-1"></i>{{ 'Déconnexion'|trans }}</a>
+    </div>
+</nav>
+{% endblock %}
+{% block body %}
+<div class="row g-3">
+    <div class="col-lg-7 order-2 order-lg-1">
+        <div id="carte"><div id="carteVide"><div><i class="fas fa-map fa-2x mb-2"></i><p class="mb-0">{{ 'Chargement de la carte…'|trans }}</p></div></div></div>
+        <p class="small text-muted mt-1 mb-0" id="carteAide">{{ 'Touchez un terrain sur la carte pour le retrouver dans la liste.'|trans }}</p>
+    </div>
+
+    <div class="col-lg-5 order-1 order-lg-2">
+        <div class="liste-terrains pe-1">
+            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                <div>
+                    <h1 class="h4 section-title mb-0">{{ 'Bonjour'|trans }} {{ app.user.nomAffiche }}</h1>
+                    <p class="text-muted small mb-0">{{ 'Choisissez le terrain avec lequel vous entrez : le robot calcule tout pour lui.'|trans }}</p>
+                </div>
+                <button type="button" class="btn btn-success btn-sm text-nowrap" id="btnNouveau"><i class="fas fa-plus me-1"></i>{{ 'Ajouter'|trans }}</button>
+            </div>
+
+            {# ---------- Assistant d'ajout ---------- #}
+            <div class="card card-body mb-3{{ terrains is not empty ? ' d-none' }}" id="assistant">
+                <div class="d-flex justify-content-between"><h2 class="h6 fw-bold mb-3"><i class="fas fa-plus-circle me-1 text-pg"></i>{{ 'Nouveau terrain'|trans }}</h2>{% if terrains is not empty %}<button type="button" class="btn-close" id="btnFermerAssistant" aria-label="Fermer"></button>{% endif %}</div>
+                <form id="formTerrain" novalidate>
+                    <div class="etape">
+                        <h3>{{ '1. Le terrain'|trans }}</h3>
+                        <div class="row g-2">
+                            <div class="col-12"><label class="form-label small mb-0" for="wzNom">{{ 'Nom'|trans }}</label><input id="wzNom" class="form-control form-control-sm" maxlength="120" placeholder="{{ 'Ex : Henchir Sud'|trans }}"></div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="wzIrrigue">
+                            <label class="form-check-label small" for="wzIrrigue">{{ 'Le terrain peut être irrigué (puits, forage, SONEDE, réseau CRDA…)'|trans }}</label>
+                        </div>
+                    </div>
+                    <div class="etape">
+                        <h3>{{ '2. Où se trouve-t-il ?'|trans }}</h3>
+                        <div class="btn-group btn-group-sm w-100 mb-2" role="group" aria-label="{{ 'Façon de placer le terrain'|trans }}">
+                            <input type="radio" class="btn-check" name="wzMode" id="wzModeAdresse" value="adresse" checked>
+                            <label class="btn btn-outline-success" for="wzModeAdresse"><i class="fas fa-pen me-1"></i>{{ "Avec l'adresse"|trans }}</label>
+                            <input type="radio" class="btn-check" name="wzMode" id="wzModeCarte" value="carte">
+                            <label class="btn btn-outline-success" for="wzModeCarte"><i class="fas fa-draw-polygon me-1"></i>{{ 'Sur la carte'|trans }}</label>
+                        </div>
+                        <div id="wzBlocAdresse">
+                            <div class="row g-2">
+                                <div class="col-8"><label class="form-label small mb-0" for="wzAdresse">{{ 'Adresse (lieu-dit, délégation, gouvernorat)'|trans }}</label><input id="wzAdresse" class="form-control form-control-sm" maxlength="300" placeholder="{{ 'Ex : route de Kélibia km 5, Menzel Temime, Nabeul'|trans }}"></div>
+                                <div class="col-4"><label class="form-label small mb-0" for="wzSurface">{{ 'Surface (ha)'|trans }}</label><input id="wzSurface" type="number" min="0.01" step="any" class="form-control form-control-sm"></div>
+                            </div>
+                            <p class="small text-muted mt-1 mb-0">{{ "Écrivez l'adresse comme vous la diriez et la surface : le robot trouve la localité. Pas besoin de dessiner."|trans }}</p>
+                        </div>
+                        <div id="wzBlocCarte" class="d-none">
+                            <div class="d-flex flex-wrap gap-2 align-items-center">
+                                <button type="button" class="btn btn-sm btn-success" id="btnDessiner"><i class="fas fa-draw-polygon me-1"></i>{{ 'Dessiner le terrain'|trans }}</button>
+                                <span class="small" id="wzContour"><span class="text-muted">{{ "Aucun contour pour l'instant."|trans }}</span></span>
+                            </div>
+                            <p class="small text-muted mt-1 mb-0">{{ 'Zoomez sur votre champ, touchez chaque coin puis le premier point pour fermer. La surface est calculée à partir du dessin.'|trans }}</p>
+                        </div>
+                    </div>
+                    <div class="etape">
+                        <h3>{{ '3. Preuve que le terrain est à vous'|trans }}</h3>
+                        <div class="row g-2">
+                            <div class="col-sm-5">
+                                <select id="wzType" class="form-select form-select-sm" aria-label="Type de justificatif">
+                                    {% for k, v in types_justificatifs %}<option value="{{ k }}">{{ v|trans }}</option>{% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-sm-7"><input id="wzFichier" type="file" class="form-control form-control-sm" accept="application/pdf,image/*" aria-label="Fichier du justificatif"></div>
+                        </div>
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" id="wzCertifie">
+                            <label class="form-check-label small" for="wzCertifie">{{ 'Je certifie être propriétaire ou locataire de ce terrain.'|trans }}</label>
+                        </div>
+                        <p class="small text-muted mt-1 mb-0"><i class="fas fa-lock me-1"></i>{{ "Le document n'est visible que par vous et l'équipe. Le robot le lit et le compare à votre compte ; l'équipe valide."|trans }}</p>
+                    </div>
+                    <button type="submit" class="btn btn-success w-100" id="btnEnregistrer"><i class="fas fa-check me-1"></i>{{ 'Enregistrer le terrain'|trans }}</button>
+                </form>
+            </div>
+
+            {# ---------- Liste ---------- #}
+            {% if terrains is empty %}
+                <p class="text-muted small"><i class="fas fa-info-circle me-1"></i>{{ 'Ajoutez au moins un terrain pour continuer : le robot a besoin de savoir où vous cultivez.'|trans }}</p>
+            {% endif %}
+            <div id="listeTerrains">
+                {% for t in terrains %}
+                    {% set e = meilleures[t.codeTerrain] ?? null %}
+                    {% set c = t.culturePrincipale %}
+                    <div class="card terrain-item mb-2{{ actif and actif.codeTerrain == t.codeTerrain ? ' selectionne' }}" data-terrain="{{ t.codeTerrain }}">
+                        <div class="card-body p-3">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <h2 class="h6 mb-0">{{ t.nom }}</h2>
+                                    <div class="small text-muted"><i class="fas fa-map-marker-alt me-1"></i>{{ t.localisation ?: ('Localité non renseignée'|trans) }} · {{ t.surface|number_format(2, ',', ' ') }} ha</div>
+                                </div>
+                                <span class="badge statut statut-{{ t.justificatifStatut }}">{{ t.justificatifStatutLabel|trans }}</span>
+                            </div>
+                            <div class="small mt-2">
+                                {% if c %}<i class="fas fa-leaf text-pg me-1"></i>{{ c.cultureNom|trans }} ({{ c.statutLabel|trans }}){% else %}<i class="fas fa-leaf text-muted me-1"></i>{{ 'Aucune culture en cours'|trans }}{% endif %}
+                                {% if e %}<br><i class="fas fa-robot text-pg me-1"></i>{{ 'Recommandé'|trans }} : <strong>{{ e.cultureNom|trans }}</strong> ({{ e.tauxReussite|round }} %, {{ e.benefice|number_format(0, ',', ' ') }} DT){% endif %}
+                            </div>
+                            {% set v = t.justificatifVerification %}
+                            {% if t.justificatifStatut == 'refuse' and v.equipe.motif is defined and v.equipe.motif %}<div class="small text-danger mt-1">{{ 'Motif'|trans }} : {{ v.equipe.motif }}</div>{% endif %}
+                            {% if t.justificatifStatut == 'a_fournir' %}<div class="small text-danger mt-1">{{ 'Envoyez le justificatif pour pouvoir entrer avec ce terrain.'|trans }}</div>{% endif %}
+                            <div class="d-flex flex-wrap gap-2 mt-2">
+                                {% if t.utilisable %}
+                                    <form method="post" action="{{ path('app_choix_terrain_entrer', {id: t.codeTerrain}) }}" class="m-0">
+                                        <input type="hidden" name="_token" value="{{ csrf_token('entrer-terrain') }}">
+                                        <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-sign-in-alt me-1"></i>{{ 'Entrer'|trans }}</button>
+                                    </form>
+                                {% endif %}
+                                {% if t.geometrie %}<button type="button" class="btn btn-outline-secondary btn-sm" data-contour="{{ t.codeTerrain }}"><i class="fas fa-draw-polygon me-1"></i>{{ 'Modifier le contour'|trans }}</button>{% endif %}
+                                {% if not t.utilisable %}<button type="button" class="btn btn-warning btn-sm" data-justif="{{ t.codeTerrain }}"><i class="fas fa-file-upload me-1"></i>{{ (t.justificatifStatut == 'refuse' ? 'Envoyer un nouveau justificatif' : 'Envoyer le justificatif')|trans }}</button>{% endif %}
+                                {% if t.justificatifFichier %}<a class="btn btn-link btn-sm p-0 align-self-center" target="_blank" rel="noopener" href="{{ path('api_terrain_justificatif_voir', {id: t.codeTerrain}) }}">{{ 'Voir le document'|trans }}</a>{% endif %}
+                            </div>
+                            <form class="form-justif d-none mt-2 border-top pt-2" data-pour="{{ t.codeTerrain }}">
+                                <div class="row g-2">
+                                    <div class="col-sm-5"><select name="justificatifType" class="form-select form-select-sm" aria-label="Type">{% for k, lbl in types_justificatifs %}<option value="{{ k }}"{{ t.justificatifType == k ? ' selected' }}>{{ lbl|trans }}</option>{% endfor %}</select></div>
+                                    <div class="col-sm-7"><input name="justificatif" type="file" class="form-control form-control-sm" accept="application/pdf,image/*" aria-label="Fichier"></div>
+                                </div>
+                                <button class="btn btn-success btn-sm mt-2" type="submit">{{ 'Envoyer'|trans }}</button>
+                            </form>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
+            <div class="card menu-compte mt-3">
+                <div class="list-group list-group-flush">
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_parametres') }}"><i class="fas fa-cog"></i>{{ 'Paramètres du compte'|trans }}</a>
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_profil') }}"><i class="fas fa-user"></i>{{ 'Profil'|trans }}</a>
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_profil', {onglet: 'contact'}) }}"><i class="fas fa-comments"></i>{{ 'Contactez-nous'|trans }}</a>
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_rejoingner_nos_partenaires') }}"><i class="fas fa-handshake"></i>{{ 'Rejoignez nos partenaires'|trans }}</a>
+                    <a class="list-group-item list-group-item-action" href="{{ path('app_guide') }}"><i class="fas fa-book-open"></i>{{ 'Guide d\'utilisation'|trans }}</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-draw@1.0.4/dist/leaflet.draw.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const { api, toast, esc } = PG;
+    const TERRAINS = {{ terrainsJson|json_encode|raw }};
+    const COULEURS = { verifie: '#2e7d32', verifie_ia: '#2e7d32', en_attente: '#ef6c00', a_fournir: '#c62828', refuse: '#c62828' };
+    const carteOk = !!(window.L && L.Draw);
+    let map = null, couches = {}, edition = null, nouveau = { geometrie: null, approx: false }, contourDe = null;
+
+    const versLatLngs = g => g.coordinates[0].slice(0, -1).map(([lon, lat]) => [lat, lon]);
+    const versGeo = layer => { const g = layer.toGeoJSON().geometry; return { type: 'Polygon', coordinates: g.coordinates }; };
+    const hectares = layer => carteOk && L.GeometryUtil ? L.GeometryUtil.geodesicArea(layer.getLatLngs()[0]) / 10000 : null;
+
+    // ---------------- Carte ----------------
+    if (carteOk) {
+        document.getElementById('carte').innerHTML = '';
+        map = L.map('carte', { tap: true }).setView([34.4, 9.6], 7);
+        const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Imagerie © Esri' });
+        const plan = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 19, attribution: '© OpenStreetMap' });
+        satellite.addTo(map);
+        L.control.layers({ 'Satellite': satellite, 'Plan': plan }).addTo(map);
+        const tous = [];
+        TERRAINS.forEach(t => {
+            let layer = null;
+            if (t.geometrie) {
+                layer = L.polygon(versLatLngs(t.geometrie), { color: COULEURS[t.justificatif.statut], weight: 2, fillOpacity: .25, dashArray: t.contourApproximatif ? '6 6' : null });
+            } else if (t.point) {
+                layer = L.circleMarker(t.point, { radius: 9, color: COULEURS[t.justificatif.statut], fillOpacity: .6 });
+            }
+            if (!layer) return;
+            layer.bindTooltip(esc(t.nom) + ' · ' + t.surface + ' ha').addTo(map);
+            layer.on('click', () => selectionner(t.id, false));
+            couches[t.id] = layer;
+            tous.push(layer);
+        });
+        if (tous.length) map.fitBounds(L.featureGroup(tous).getBounds().pad(0.3), { maxZoom: 16 });
+    } else {
+        document.getElementById('carteVide').innerHTML = '<div><i class="fas fa-wifi fa-2x mb-2"></i><p class="mb-0">La carte n\'a pas pu se charger (connexion). Vous pouvez quand même ajouter un terrain avec son adresse : le robot le placera.</p></div>';
+        document.getElementById('btnDessiner').disabled = true;
+    }
+
+    function selectionner(id, deplacer = true) {
+        document.querySelectorAll('.terrain-item').forEach(el => el.classList.toggle('selectionne', el.dataset.terrain == id));
+        const carte = document.querySelector(`.terrain-item[data-terrain="${id}"]`);
+        if (!deplacer && carte) carte.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        Object.entries(couches).forEach(([k, l]) => l.setStyle && l.setStyle({ weight: k == id ? 5 : 2 }));
+        const l = couches[id];
+        if (map && l && deplacer) l.getBounds ? map.fitBounds(l.getBounds().pad(0.6), { maxZoom: 17 }) : map.setView(l.getLatLng(), 15);
+    }
+    document.getElementById('listeTerrains').addEventListener('click', e => {
+        const item = e.target.closest('.terrain-item');
+        if (item && !e.target.closest('button, a, form, input, select')) selectionner(item.dataset.terrain);
+    });
+
+    // ---------------- Contour modifiable ----------------
+    function editer(latlngs, onChange) {
+        if (edition) map.removeLayer(edition);
+        edition = L.polygon(latlngs, { color: '#ffd600', weight: 3, fillOpacity: .2 }).addTo(map);
+        edition.editing.enable();
+        const maj = () => onChange(versGeo(edition), hectares(edition));
+        edition.on('edit', maj);
+        map.on('draw:editvertex', maj);
+        map.fitBounds(edition.getBounds().pad(0.6), { maxZoom: 18 });
+        maj();
+    }
+    function dessiner(onChange) {
+        const outil = new L.Draw.Polygon(map, { allowIntersection: false, showArea: true, shapeOptions: { color: '#ffd600' } });
+        outil.enable();
+        map.once(L.Draw.Event.CREATED, ev => { editer(ev.layer.getLatLngs()[0], onChange); });
+        toast('Touchez la carte pour poser chaque coin du terrain, puis le premier point pour fermer.', 'info');
+    }
+    const mode = () => document.getElementById('wzModeCarte').checked ? 'carte' : 'adresse';
+    document.querySelectorAll('[name=wzMode]').forEach(r => r.addEventListener('change', () => {
+        document.getElementById('wzBlocAdresse').classList.toggle('d-none', mode() !== 'adresse');
+        document.getElementById('wzBlocCarte').classList.toggle('d-none', mode() !== 'carte');
+        if (mode() === 'carte' && !carteOk) toast('{{ "La carte n'est pas disponible pour le moment : utilisez l'adresse."|trans|e('js') }}', 'warning');
+    }));
+    function majNouveau(geo, ha, approx) {
+        nouveau = { geometrie: geo, approx: !!approx, ha: ha };
+        document.getElementById('wzContour').innerHTML = `<i class="fas fa-check text-success me-1"></i>{{ 'Surface dessinée'|trans|e('js') }} : <strong>${ha ? ha.toFixed(2).replace('.', ',') : '?'} {{ 'ha'|trans|e('js') }}</strong>`;
+    }
+
+    // ---------------- Assistant ----------------
+    const assistant = document.getElementById('assistant');
+    document.getElementById('btnNouveau').addEventListener('click', () => { assistant.classList.remove('d-none'); assistant.scrollIntoView({ behavior: 'smooth' }); });
+    document.getElementById('btnFermerAssistant')?.addEventListener('click', () => { assistant.classList.add('d-none'); if (edition) { map.removeLayer(edition); edition = null; } });
+
+    document.getElementById('btnDessiner').addEventListener('click', () => dessiner((geo, ha) => majNouveau(geo, ha, false)));
+
+    document.getElementById('formTerrain').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        const nom = document.getElementById('wzNom').value.trim();
+        const parCarte = mode() === 'carte';
+        const surface = parCarte ? (nouveau.ha ? nouveau.ha.toFixed(2) : '') : document.getElementById('wzSurface').value;
+        const adresse = parCarte ? '' : document.getElementById('wzAdresse').value.trim();
+        const fichier = document.getElementById('wzFichier').files[0];
+        if (!nom) { toast('{{ 'Donnez un nom au terrain.'|trans|e('js') }}', 'warning'); return; }
+        if (!parCarte && (!adresse || !(parseFloat(surface) > 0))) { toast('{{ "Écrivez l'adresse et la surface du terrain."|trans|e('js') }}', 'warning'); return; }
+        if (parCarte && !nouveau.geometrie) { toast('{{ 'Dessinez le terrain sur la carte.'|trans|e('js') }}', 'warning'); return; }
+        if (!fichier) { toast('Joignez le certificat de propriété ou le contrat de location.', 'warning'); return; }
+        if (!document.getElementById('wzCertifie').checked) { toast('Cochez la case de certification.', 'warning'); return; }
+        const fd = new FormData();
+        fd.append('nom', nom); fd.append('surface', surface); fd.append('localisation', adresse);
+        if (document.getElementById('wzIrrigue').checked) fd.append('irrigue', '1');
+        if (parCarte) { fd.append('geometrie', JSON.stringify(nouveau.geometrie)); fd.append('contourApproximatif', '0'); }
+        fd.append('justificatifType', document.getElementById('wzType').value);
+        fd.append('justificatif', fichier);
+        const btn = document.getElementById('btnEnregistrer');
+        btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Le robot vérifie le document…';
+        try {
+            const r = await api('/api/terrains', { method: 'POST', body: fd });
+            if (r.avertissement) toast(r.avertissement, 'warning');
+            toast('Terrain enregistré : ' + r.terrain.justificatif.label.toLowerCase() + '.');
+            setTimeout(() => window.location.reload(), 900);
+        } catch (err) {
+            toast(err.message, 'danger');
+            btn.disabled = false; btn.innerHTML = '<i class="fas fa-check me-1"></i>Enregistrer le terrain';
+        }
+    });
+
+    // ---------------- Terrains existants ----------------
+    document.querySelectorAll('[data-contour]').forEach(b => b.addEventListener('click', () => {
+        if (!map) { toast('La carte n\'est pas disponible.', 'warning'); return; }
+        const id = b.dataset.contour, t = TERRAINS.find(x => x.id == id);
+        selectionner(id);
+        contourDe = { id, geometrie: null };
+        const surChangement = (geo, ha) => { contourDe.geometrie = geo; b.innerHTML = `<i class="fas fa-save me-1"></i>Enregistrer (${ha ? ha.toFixed(2).replace('.', ',') + ' ha' : ''})`; b.dataset.pret = '1'; };
+        if (b.dataset.pret) {
+            api(`/api/terrains/${id}/geometrie`, { method: 'POST', body: { geometrie: contourDe.geometrie } })
+                .then(r => { if (r.avertissement) toast(r.avertissement, 'warning'); toast('Contour enregistré.'); setTimeout(() => location.reload(), 700); })
+                .catch(e => toast(e.message, 'danger'));
+            return;
+        }
+        if (couches[id]) map.removeLayer(couches[id]);
+        t.geometrie ? editer(versLatLngs(t.geometrie), surChangement) : dessiner(surChangement);
+    }));
+
+    document.querySelectorAll('[data-justif]').forEach(b => b.addEventListener('click', () => {
+        document.querySelector(`.form-justif[data-pour="${b.dataset.justif}"]`).classList.toggle('d-none');
+    }));
+    document.querySelectorAll('.form-justif').forEach(f => f.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (!f.justificatif.files[0]) { toast('Choisissez le fichier.', 'warning'); return; }
+        const btn = f.querySelector('button'); btn.disabled = true;
+        try {
+            const r = await api(`/api/terrains/${f.dataset.pour}/justificatif`, { method: 'POST', body: new FormData(f) });
+            toast(r.message);
+            setTimeout(() => location.reload(), 900);
+        } catch (err) { toast(err.message, 'danger'); btn.disabled = false; }
+    }));
+
+    {% if actif %}selectionner({{ actif.codeTerrain }}, false);{% endif %}
+});
+</script>
+{% endblock %}

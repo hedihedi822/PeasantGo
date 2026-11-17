@@ -1,0 +1,110 @@
+{% extends '_layout/site.html.twig' %}
+{% set active = 'classement' %}
+{% block title %}Cultures les plus rentables – PeasantGo.AI{% endblock %}
+{% block styles %}
+    .cl-onglets .nav-link { color: var(--primary-color); }
+    .cl-onglets .nav-link.active { background: var(--primary-color); color: #fff; }
+    .cl-table th { font-size: .82rem; white-space: nowrap; }
+    .cl-table td { font-size: .9rem; vertical-align: middle; }
+    .rang { width: 34px; height: 34px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; background: #eef6f1; color: var(--primary-color); }
+    .rang.or { background: #ffd54f; color: #5d4300; } .rang.argent { background: #e0e0e0; color: #424242; } .rang.bronze { background: #ffcc80; color: #6d3a00; }
+    .marche-sature { background: #c62828; } .marche-manque { background: #2e7d32; } .marche-equilibre { background: #6c757d; } .marche-inconnu { background: #adb5bd; }
+{% endblock %}
+{% block body %}
+<div class="card shadow-sm mb-3">
+    <div class="card-body">
+        <h1 class="h3 section-title mb-1"><i class="fas fa-trophy me-2"></i>{{ 'Les cultures et élevages les plus rentables'|trans }}</h1>
+        <p class="text-muted mb-0">{{ 'Du plus rentable au moins rentable, calculés par le robot à chaque niveau. Le marché local indique si la zone produit déjà trop (risque de prix bas) ou pas assez.'|trans }}</p>
+    </div>
+</div>
+<div class="card shadow-sm">
+    <div class="card-body">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <ul class="nav nav-pills cl-onglets gap-1">
+                <li class="nav-item"><button type="button" class="nav-link" data-niveau="localite"><i class="fas fa-map-marker-alt me-1"></i>{{ 'Ma localité'|trans }}</button></li>
+                <li class="nav-item"><button type="button" class="nav-link active" data-niveau="gouvernorat"><i class="fas fa-map me-1"></i>{{ 'Gouvernorat'|trans }}</button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-niveau="pays"><i class="fas fa-flag me-1"></i>{{ 'Tunisie'|trans }}</button></li>
+                <li class="nav-item"><button type="button" class="nav-link" data-niveau="monde"><i class="fas fa-globe-africa me-1"></i>{{ 'Monde'|trans }}</button></li>
+            </ul>
+            <select class="form-select form-select-sm w-auto" id="clGouv" aria-label="Gouvernorat">
+                {% for g in gouvernorats %}<option value="{{ g.code }}"{{ g.code == gouvernoratDefaut or (not gouvernoratDefaut and g.code == 'TN-TUNIS') ? ' selected' }}>{{ g.nom }}</option>{% endfor %}
+            </select>
+        </div>
+        <p class="small text-muted" id="clIntro"></p>
+        <div class="table-responsive"><table class="table table-hover cl-table mb-0" id="clTable"></table></div>
+        {% if not app.user %}
+            <div class="alert alert-success small mt-3 mb-0 d-flex flex-wrap justify-content-between align-items-center gap-2">
+                <span><i class="fas fa-lock me-1"></i>Le bénéfice, la réussite et le prix sont réservés aux membres.</span>
+                <a href="{{ path('app_sign_up') }}" class="btn btn-success btn-sm">Créer un compte gratuit</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const { api, esc, formatNumber, formatDate } = PG;
+    const LOCK = '<i class="fas fa-lock text-muted" title="Réservé aux membres"></i>';
+    const MARCHE = { sature: 'Saturé', manque: 'En manque', equilibre: 'Équilibré', inconnu: 'Inconnu' };
+    const INTRO = {
+        localite: 'Votre terrain : bénéfice estimé par hectare (élevage : pour l\'effectif indiqué).',
+        gouvernorat: 'Terrain type de 1 ha au centre du gouvernorat (élevage : élevage type).',
+        pays: 'Tunisie : moyenne des gouvernorats producteurs de chaque culture.',
+        monde: 'Monde (pays suivis par le robot) : il n\'y a pas de prix mondial fiable par culture, le classement suit donc la demande non couverte — là où il manque du produit, il y a des débouchés à l\'export.',
+    };
+    const box = document.getElementById('clTable');
+    const gouv = document.getElementById('clGouv');
+    let niveau = 'gouvernorat';
+    const rang = i => `<span class="rang ${['or', 'argent', 'bronze'][i] || ''}">${i + 1}</span>`;
+    const v = (x, f) => x === null || x === undefined ? LOCK : f(x);
+    const prixAff = l => v(l.prix, p => l.affichage && l.affichage[1] !== 1 ? `${formatNumber(p * l.affichage[1], 3)} DT/${esc(l.affichage[0].replace(/s$/, ''))}` : `${formatNumber(p, 2)} DT/kg`);
+
+    function tableLocale(lignes) {
+        const parFamille = f => lignes.filter(l => l.famille === f);
+        const rows = (liste, unite) => liste.map((l, i) => `<tr>
+            <td>${rang(i)}</td>
+            <td><strong style="color:var(--primary-color)">${esc(PGRobot.t(l.nom))}</strong><br><small class="text-muted">${esc(PGRobot.t(l.type))}</small></td>
+            <td><strong class="${l.benefice >= 0 ? 'text-success' : 'text-danger'}">${v(l.benefice, b => (b >= 0 ? '+' : '') + formatNumber(b, 0) + ' DT')}</strong><br><small class="text-muted">${unite === 'ha' ? 'par ha' : 'pour ' + esc(l.unite)}</small></td>
+            <td>${v(l.tauxReussite, t => Math.round(t) + ' %')}</td>
+            <td>${prixAff(l)}</td>
+            <td>${formatNumber(l.cout, 0)} DT</td>
+            <td><small>${formatDate(l.saison[0])} → ${formatDate(l.saison[1])}</small></td>
+            <td><span class="badge marche-${l.marche}">${MARCHE[l.marche]}</span>${l.couverture ? `<br><small class="text-muted">${l.couverture} % couvert</small>` : ''}</td>
+            <td>${l.exportation ? '<span class="badge bg-success">Export</span>' : ''}${l.note ? `<br><small class="text-muted">${esc(l.note)}</small>` : ''}</td>
+        </tr>`).join('');
+        const tete = t => `<tr class="table-light"><th colspan="9">${t}</th></tr>`;
+        return `<thead><tr><th>Rang</th><th>Culture / élevage</th><th>Bénéfice estimé</th><th>Réussite</th><th>Prix</th><th>Coût</th><th>Saison</th><th>Marché local</th><th></th></tr></thead>
+            <tbody>${tete('<i class="fas fa-seedling me-1"></i>Cultures (par hectare)')}${rows(parFamille('vegetal'), 'ha')}${tete('<i class="fas fa-paw me-1"></i>Élevage (par élevage type)')}${rows(parFamille('animal'), 'animal')}</tbody>`;
+    }
+    function tableMonde(lignes) {
+        return `<thead><tr><th>Rang</th><th>Culture / élevage</th><th>Demande non couverte</th><th>Production</th><th>Consommation</th><th>Couverture</th><th>Pays qui manquent le plus</th></tr></thead><tbody>${lignes.map((l, i) => `<tr>
+            <td>${rang(i)}</td>
+            <td><strong style="color:var(--primary-color)">${esc(PGRobot.t(l.nom))}</strong><br><small class="text-muted">${esc(PGRobot.t(l.type))}</small></td>
+            <td><strong>${formatNumber(l.manque, 0)} t</strong><br><small class="text-muted">${l.partManque} % de la consommation</small></td>
+            <td>${formatNumber(l.production, 0)} t</td>
+            <td>${formatNumber(l.consommation, 0)} t</td>
+            <td>${l.couverture ?? '—'} %</td>
+            <td class="small">${l.paysEnManque.map(p => `${esc(p.pays)} (${formatNumber(p.manque, 0)} t)`).join('<br>') || '—'}</td>
+        </tr>`).join('')}</tbody>`;
+    }
+
+    async function charger() {
+        document.querySelectorAll('[data-niveau]').forEach(b => b.classList.toggle('active', b.dataset.niveau === niveau));
+        gouv.classList.toggle('d-none', niveau !== 'gouvernorat');
+        document.getElementById('clIntro').textContent = INTRO[niveau];
+        box.innerHTML = '<tbody><tr><td class="text-center text-muted py-4"><span class="spinner-border spinner-border-sm me-2"></span>Le robot calcule…' + (niveau === 'pays' ? ' (les 24 gouvernorats : la première fois peut prendre une minute)' : '') + '</td></tr></tbody>';
+        try {
+            const r = await api(`/api/robot/classement/${niveau}` + (niveau === 'gouvernorat' ? '?gouvernorat=' + encodeURIComponent(gouv.value) : ''));
+            if (r.zone) document.getElementById('clIntro').textContent = r.zone + ' — ' + INTRO[niveau];
+            if (!r.lignes.length) { box.innerHTML = `<tbody><tr><td class="text-center text-muted py-4">${esc(r.message || 'Pas encore de données pour ce niveau.')}</td></tr></tbody>`; return; }
+            box.innerHTML = niveau === 'monde' ? tableMonde(r.lignes) : tableLocale(r.lignes);
+        } catch (e) { box.innerHTML = `<tbody><tr><td class="text-center text-danger py-4">${esc(e.message)}</td></tr></tbody>`; }
+    }
+    document.querySelectorAll('[data-niveau]').forEach(b => b.addEventListener('click', () => { niveau = b.dataset.niveau; charger(); }));
+    gouv.addEventListener('change', charger);
+    {% if terrain %}niveau = 'localite';{% endif %}
+    charger();
+});
+</script>
+{% endblock %}

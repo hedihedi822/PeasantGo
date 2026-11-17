@@ -1,0 +1,11 @@
+# Protection CSRF : formulaires Symfony et logout en mode "stateless".
+# Le formulaire de connexion utilise un jeton classique stocké en session (csrf_token('authenticate')).
+framework:
+    form:
+        csrf_protection:
+            token_id: submit
+
+    csrf_protection:
+        stateless_token_ids:
+            - submit
+            - logout

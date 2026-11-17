@@ -1,0 +1,6 @@
+framework:
+    mailer:
+        dsn: '%env(MAILER_DSN)%'
+        # Expéditeur par défaut de tous les emails (code de réinitialisation...)
+        headers:
+            From: 'PeasantGoGo <%env(MAILER_FROM)%>'

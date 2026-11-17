@@ -1,0 +1,293 @@
+{#
+    Tableaux "Productions végétales" et "Productions animales" de la page d'accueil.
+    Variables :
+      tableaux : résultat de App\Service\CatalogueService::getTableaux()
+      favoris  : liste des id_p favoris de l'utilisateur ([] si visiteur)
+    Le tri / filtres / pagination sont faits côté navigateur (données déjà chargées).
+#}
+{% set gouvernorats = ['Ariana','Béja','Ben Arous','Bizerte','Gabès','Gafsa','Jendouba','Kairouan','Kasserine','Kébili','Le Kef','Mahdia','La Manouba','Médenine','Monastir','Nabeul','Sfax','Sidi Bouzid','Siliana','Sousse','Tataouine','Tozeur','Tunis','Zaghouan'] %}
+
+{% set toutes = [
+    {key: 'vegetal', titre: 'Productions végétales', icone: 'fa-seedling'},
+    {key: 'animal',  titre: 'Productions animales',  icone: 'fa-horse'}
+] %}
+{% for section in toutes|filter(s => s.key in (sections|default(['vegetal', 'animal']))) %}
+<div class="card shadow-sm mb-4" data-section="{{ section.key }}">
+    <div class="card-body">
+        <h4 class="section-title"><i class="fas {{ section.icone }} me-2"></i>{{ section.titre }}</h4>
+
+        <div class="filter-row">
+            <div class="row g-2 align-items-center">
+                <div class="col-lg-10">
+                    <div class="d-flex flex-wrap gap-2">
+                        <select class="form-select f-niveau" style="width: 150px;" aria-label="Niveau">
+                            <option value="national">National</option>
+                            <option value="etat">État : Tunisie</option>
+                        </select>
+                        <select class="form-select f-region" style="width: 150px;" aria-label="Région">
+                            <option value="">Toutes régions</option>
+                            {% for g in gouvernorats %}
+                                <option value="{{ g }}"{% if g not in tableaux.regions %} class="text-muted"{% endif %}>{{ g }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="search" class="form-control f-texte" placeholder="Mot à rechercher..." style="width: 180px;" aria-label="Recherche">
+                        <select class="form-select f-type" style="width: 150px;" aria-label="Type">
+                            <option value="">{{ section.key == 'animal' ? 'Espèce' : 'Type' }}</option>
+                            {% for t in (tableaux[section.key]|map(r => r.type))|reduce((acc, t) => t in acc ? acc : acc|merge([t]), []) %}
+                                <option value="{{ t }}">{{ t }}</option>
+                            {% endfor %}
+                        </select>
+                        <input type="number" min="1" class="form-control f-saison" placeholder="N° saison" style="width: 110px;" aria-label="Numéro de saison">
+                        {% if section.key == 'vegetal' %}
+                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                <label class="small text-muted mb-0">Début cultivation après</label>
+                                <input type="date" class="form-control f-debut" style="width: 150px;">
+                                <label class="small text-muted mb-0 ms-1">Exploitation avant</label>
+                                <input type="date" class="form-control f-fin" style="width: 150px;">
+                            </div>
+                        {% endif %}
+                        <select class="form-select f-taux" style="width: 160px;" aria-label="Taux de réussite"{% if not tableaux.complet %} disabled title="Connectez-vous pour filtrer"{% endif %}>
+                            <option value="">Taux réussite</option>
+                            <option value="high">Élevé (&gt;80%)</option>
+                            <option value="mid">Moyen (50-80%)</option>
+                            <option value="low">Faible (&lt;50%)</option>
+                        </select>
+                        <select class="form-select f-exces" style="width: 160px;" aria-label="Pourcentage d'excès"{% if not tableaux.complet %} disabled title="Connectez-vous pour filtrer"{% endif %}>
+                            <option value="">% Excès/Échec</option>
+                            <option value="low">Faible (&lt;10%)</option>
+                            <option value="mid">Moyen (10-30%)</option>
+                            <option value="high">Élevé (&gt;30%)</option>
+                        </select>
+                        {% if app.user %}
+                            <div class="form-check d-flex align-items-center ms-1">
+                                <input class="form-check-input me-1 f-favoris" type="checkbox" id="fav-{{ section.key }}">
+                                <label class="form-check-label small" for="fav-{{ section.key }}">Mes favoris</label>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-lg-2 d-flex justify-content-lg-end gap-2">
+                    <button type="button" class="btn btn-outline-secondary btn-sm f-reset" title="Réinitialiser"><i class="fas fa-undo"></i></button>
+                    <button type="button" class="search-btn f-go"><i class="fas fa-search me-1"></i> Rechercher</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="table-responsive table-container">
+            <table class="table table-hover align-middle mb-0">
+                <thead>
+                {% if section.key == 'vegetal' %}
+                    <tr>
+                        <th rowspan="2" style="width: 50px;">Favoris</th>
+                        <th rowspan="2">Catégorie</th>
+                        <th rowspan="2">Type</th>
+                        <th rowspan="2">Sous Type</th>
+                        <th colspan="4" class="text-center">Saison</th>
+                        <th rowspan="2">Taux de Réussite</th>
+                        <th rowspan="2">Exportation</th>
+                        <th rowspan="2">% Excès</th>
+                        <th rowspan="2">Coût (DT/ha)</th>
+                        <th rowspan="2">Prix (DT/kg)</th>
+                    </tr>
+                    <tr>
+                        <th>N° Saison</th>
+                        <th>Saisons/An</th>
+                        <th>Début cultivation</th>
+                        <th>Début exploitation</th>
+                    </tr>
+                {% else %}
+                    <tr>
+                        <th rowspan="2" style="width: 50px;">Favoris</th>
+                        <th rowspan="2">Catégorie</th>
+                        <th rowspan="2">Espèce</th>
+                        <th rowspan="2">Race</th>
+                        <th rowspan="2">Méthode d'élevage</th>
+                        <th rowspan="2">Cycles/An</th>
+                        <th colspan="2" class="text-center">Production</th>
+                        <th rowspan="2">Taux de Réussite</th>
+                        <th rowspan="2">Exportation</th>
+                        <th rowspan="2">% Excès</th>
+                        <th rowspan="2">Coût (DT)</th>
+                        <th rowspan="2">Prix (DT/kg)</th>
+                    </tr>
+                    <tr>
+                        <th>Production (t)</th>
+                        <th>Rendement</th>
+                    </tr>
+                {% endif %}
+                </thead>
+                <tbody class="cat-body"></tbody>
+            </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center flex-wrap mt-2">
+            <small class="text-muted cat-count"></small>
+            <nav aria-label="Pagination {{ section.titre }}"><ul class="pagination justify-content-center mb-0 cat-pages"></ul></nav>
+        </div>
+    </div>
+</div>
+{% endfor %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const DATA = {{ tableaux|json_encode|raw }};
+    let favoris = new Set({{ favoris|default([])|json_encode|raw }});
+    const CONNECTE = {{ app.user ? 'true' : 'false' }};
+    const PAR_PAGE = 10;
+    const { esc, formatNumber, toast, api } = window.PG;
+
+    function badge(v, inverse = false) {
+        if (v === null || v === undefined) return '<span class="text-muted">—</span>';
+        let cls = v >= 80 ? 'badge-success' : v >= 50 ? 'badge-warning' : 'badge-danger';
+        if (inverse) cls = v < 10 ? 'badge-success' : v <= 30 ? 'badge-warning' : 'badge-danger';
+        return `<span class="badge ${cls}">${formatNumber(v, 1)}%</span>`;
+    }
+    function jourMois(iso) {
+        if (!iso) return '—';
+        const [, m, d] = iso.split('-');
+        return `${d}/${m}`;
+    }
+    function exportCell(e) {
+        if (!e) return '<span class="text-muted">—</span>';
+        if (!e.existe) return '<span class="badge bg-secondary">Non</span>';
+        return `<span class="badge badge-success" title="${esc(e.societe || '')}">Oui</span><br><small class="text-muted">${formatNumber(e.quantite, 0)} t</small>`;
+    }
+    function star(r) {
+        const on = favoris.has(r.idP);
+        return `<i class="${on ? 'fas active' : 'far'} fa-star star-btn" data-idp="${r.idP}" role="button" tabindex="0" aria-label="Favori"></i>`;
+    }
+
+    const LOCK = `<td colspan="5"><a href="{{ path('app_login') }}" class="btn btn-primary btn-sm w-100"><i class="fas fa-lock me-1"></i> Connectez-vous pour voir les statistiques</a></td>`;
+    function stats(r, n) {
+        if (!DATA.complet) return LOCK;
+        return `<td>${badge(n.taux)}</td><td>${exportCell(r.export)}</td><td>${badge(n.exces, true)}</td>
+            <td>${formatNumber(n.cout, 0)}</td><td>${formatNumber(n.prix)}</td>`;
+    }
+
+    function rowVegetal(r, n) {
+        return `<tr>
+            <td class="text-center">${star(r)}</td>
+            <td>${esc(r.categorie)}</td><td>${esc(r.type)}</td><td><strong>${esc(r.sousType)}</strong><br><small class="text-muted">${esc(r.methode)}</small></td>
+            <td>${r.numeroSaison ?? '—'}</td><td>${r.saisonsParAn ?? '—'}</td>
+            <td>${jourMois(n.debutCultivation)}</td><td>${jourMois(n.debutExploitation)}</td>
+            ${stats(r, n)}
+        </tr>`;
+    }
+    function rowAnimal(r, n) {
+        return `<tr>
+            <td class="text-center">${star(r)}</td>
+            <td>${esc(r.categorie)}</td><td>${esc(r.type)}</td><td><strong>${esc(r.sousType)}</strong></td>
+            <td>${esc(r.methode)}</td><td>${r.saisonsParAn ?? '—'}</td>
+            <td>${formatNumber(n.production, 0)}</td><td>${r.productivite ?? '—'} t/unité</td>
+            ${stats(r, n)}
+        </tr>`;
+    }
+
+    function inRange(v, k, inverse) {
+        if (!k) return true;
+        if (v === null || v === undefined) return false;
+        if (!inverse) return k === 'high' ? v > 80 : k === 'mid' ? v >= 50 && v <= 80 : v < 50;
+        return k === 'low' ? v < 10 : k === 'mid' ? v >= 10 && v <= 30 : v > 30;
+    }
+
+    document.querySelectorAll('[data-section]').forEach(card => {
+        const key = card.dataset.section;
+        const rows = DATA[key] || [];
+        const tbody = card.querySelector('.cat-body');
+        const pages = card.querySelector('.cat-pages');
+        const count = card.querySelector('.cat-count');
+        const $ = s => card.querySelector(s);
+        let page = 1;
+
+        function filtres() {
+            return {
+                niveau: $('.f-niveau').value,
+                region: $('.f-region').value,
+                texte: $('.f-texte').value.trim().toLowerCase(),
+                type: $('.f-type').value,
+                saison: $('.f-saison').value,
+                debut: $('.f-debut')?.value || '',
+                fin: $('.f-fin')?.value || '',
+                taux: $('.f-taux').value,
+                exces: $('.f-exces').value,
+                favoris: $('.f-favoris')?.checked || false,
+            };
+        }
+
+        function render() {
+            const f = filtres();
+            // Une région choisie → valeurs "par région" et seulement les produits présents dans cette région
+            const niveau = f.region ? 'region' : f.niveau;
+            const list = rows.filter(r => {
+                const n = r.niveaux[niveau];
+                if (f.region && !r.regions.includes(f.region)) return false;
+                if (f.texte && !`${r.categorie} ${r.type} ${r.sousType} ${r.methode}`.toLowerCase().includes(f.texte)) return false;
+                if (f.type && r.type !== f.type) return false;
+                if (f.saison && String(r.numeroSaison) !== f.saison) return false;
+                if (f.debut && (!n.debutCultivation || n.debutCultivation < f.debut)) return false;
+                if (f.fin && (!n.debutExploitation || n.debutExploitation > f.fin)) return false;
+                if (!inRange(n.taux, f.taux, false)) return false;
+                if (!inRange(n.exces, f.exces, true)) return false;
+                if (f.favoris && !favoris.has(r.idP)) return false;
+                return true;
+            });
+
+            const nbPages = Math.max(1, Math.ceil(list.length / PAR_PAGE));
+            page = Math.min(page, nbPages);
+            const slice = list.slice((page - 1) * PAR_PAGE, page * PAR_PAGE);
+
+            tbody.innerHTML = slice.length
+                ? slice.map(r => key === 'animal' ? rowAnimal(r, r.niveaux[niveau]) : rowVegetal(r, r.niveaux[niveau])).join('')
+                : `<tr><td colspan="13" class="text-center text-muted empty-status"><i class="fas fa-search me-2"></i>${rows.length ? 'Aucun résultat pour ces filtres.' : 'Aucune donnée pour le moment.'}</td></tr>`;
+
+            count.textContent = list.length ? `${list.length} résultat(s)${f.region ? ' – ' + f.region : ''}` : '';
+
+            let html = `<li class="page-item ${page === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-p="${page - 1}">«</a></li>`;
+            for (let i = 1; i <= nbPages; i++) {
+                html += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" data-p="${i}">${i}</a></li>`;
+            }
+            html += `<li class="page-item ${page === nbPages ? 'disabled' : ''}"><a class="page-link" href="#" data-p="${page + 1}">»</a></li>`;
+            pages.innerHTML = nbPages > 1 ? html : '';
+        }
+
+        pages.addEventListener('click', e => {
+            const a = e.target.closest('[data-p]');
+            if (!a) return;
+            e.preventDefault();
+            page = parseInt(a.dataset.p, 10) || 1;
+            render();
+        });
+        card.querySelector('.f-go').addEventListener('click', () => { page = 1; render(); });
+        card.querySelector('.f-reset').addEventListener('click', () => {
+            card.querySelectorAll('.filter-row input, .filter-row select').forEach(el => {
+                if (el.type === 'checkbox') el.checked = false; else el.value = el.tagName === 'SELECT' ? el.options[0].value : '';
+            });
+            page = 1; render();
+        });
+        card.querySelectorAll('.filter-row select, .filter-row input[type=checkbox], .filter-row input[type=date]').forEach(el => el.addEventListener('change', () => { page = 1; render(); }));
+        card.querySelector('.f-texte').addEventListener('input', () => { page = 1; render(); });
+        card.querySelector('.f-saison').addEventListener('input', () => { page = 1; render(); });
+
+        tbody.addEventListener('click', async e => {
+            const s = e.target.closest('.star-btn');
+            if (!s) return;
+            if (!CONNECTE) {
+                toast('Connectez-vous pour enregistrer vos favoris.', 'info');
+                setTimeout(() => window.location.href = '{{ path('app_login') }}', 1200);
+                return;
+            }
+            const idP = parseInt(s.dataset.idp, 10);
+            try {
+                const res = await api(`/api/favoris/${idP}`, { method: 'POST' });
+                res.favori ? favoris.add(idP) : favoris.delete(idP);
+                document.querySelectorAll('[data-section]').forEach(c => c.dispatchEvent(new Event('refresh')));
+            } catch (err) {
+                toast(err.message, 'danger');
+            }
+        });
+        card.addEventListener('refresh', render);
+
+        render();
+    });
+});
+</script>
